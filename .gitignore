@@ -13,3 +13,8 @@ output/
 
 # Environment
 .env
+
+# Layered context (DIP-0002)
+CLAUDE.md
+*.local.md
+*.space.md

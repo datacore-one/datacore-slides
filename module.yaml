@@ -1,11 +1,21 @@
 name: slides
 version: 1.0.0
 description: Visual content generation - presentations (Gamma.app) and images (Gemini/Nano Banana)
+author: datacore
+repository: https://github.com/datacore-one/datacore-slides
+
+use_cases:
+  - Creating investor pitch decks
+  - Transforming blog posts to presentations
+  - Building reusable slide libraries
+  - Generating images from prompts (profile pics, backgrounds, graphics)
+  - Creating branded presentation templates
 
 requires:
   env_vars:
     required:
       - GAMMA_API_KEY          # sk-gamma-xxxxxxxx format
+      - GEMINI_API_KEY         # AIza... for Nano Banana image generation
     optional:
       - GAMMA_DEFAULT_THEME    # Default theme ID
       - GAMMA_DEFAULT_FOLDER   # Default folder ID
@@ -34,3 +44,22 @@ inputs:
   blog: "content/blog/"                     # Blog posts to convert
   notes: "notes/"                           # Notes to convert
   knowledge: "3-knowledge/"                 # Context for generation
+
+# User-configurable settings
+settings:
+  auto_export_pdf: true           # Auto-export PDF after creation
+  auto_index_slides: true         # Auto-index new slides for reuse
+  default_text_mode: "generate"   # generate, condense, or preserve
+  default_num_cards: 10           # Default slide count
+  default_image_model: "gemini-2.5-flash-image"  # Nano Banana model
+
+# Post-install guidance
+hooks:
+  post_install: |
+    echo "Slides module installed."
+    echo ""
+    echo "Required: Set GAMMA_API_KEY and GEMINI_API_KEY in .datacore/env/.env"
+    echo ""
+    echo "Commands:"
+    echo "  /create-presentation - Create Gamma presentations"
+    echo "  Ask me to 'generate an image of...' for Nano Banana"
