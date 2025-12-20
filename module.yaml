@@ -1,0 +1,36 @@
+name: slides
+version: 1.0.0
+description: Visual content generation - presentations (Gamma.app) and images (Gemini/Nano Banana)
+
+requires:
+  env_vars:
+    required:
+      - GAMMA_API_KEY          # sk-gamma-xxxxxxxx format
+    optional:
+      - GAMMA_DEFAULT_THEME    # Default theme ID
+      - GAMMA_DEFAULT_FOLDER   # Default folder ID
+
+provides:
+  agents:
+    - name: gamma-presentation-generator
+      trigger: ":AI:presentation:"
+      description: Creates presentations from prompts or existing content
+    - name: gamma-slide-indexer
+      trigger: ":AI:presentation:index:"
+      description: Indexes slides from presentations for reuse
+
+  commands:
+    - create-presentation       # Smart creation wizard
+    - index-presentation        # Index slides for reuse
+    - sync-gamma               # Pull presentations from Gamma
+
+# Output locations (relative to space root)
+outputs:
+  presentations: "presentations/"           # Presentation metadata + source
+  exports: "exports/"                       # Downloaded PDF/PPTX files
+
+# Input locations (for content transformation)
+inputs:
+  blog: "content/blog/"                     # Blog posts to convert
+  notes: "notes/"                           # Notes to convert
+  knowledge: "3-knowledge/"                 # Context for generation

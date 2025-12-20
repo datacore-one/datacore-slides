@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+mcp-server/node_modules/
+
+# Build output
+mcp-server/dist/
+
+# Generated output
+output/
+
+# OS
+.DS_Store
+
+# Environment
+.env
