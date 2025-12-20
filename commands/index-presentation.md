@@ -1,119 +1,105 @@
-# Index Presentation
+# /index-presentation
 
-Index slides from an existing presentation for future reuse.
+Index slides from a presentation for future reuse.
 
-## Usage
+## Workflow
+
+### Step 1: Understand Intent
+
+If invoked with no path, ask:
+
+"Which presentation would you like to index?"
+
+- List recent presentations from `presentations/` that aren't indexed yet
+- Or accept a file path directly
+
+If path is provided, proceed directly.
+
+### Step 2: Validate
+
+Check the presentation file:
+- Exists and is readable
+- Has `## Source InputText` section (required for indexing)
+- Note if already indexed (offer to re-index)
+
+### Step 3: Extract Slides
+
+Parse the inputText by `---` separators:
+- Extract title and content for each slide
+- Auto-generate tags from content keywords
+- Include metadata (project, audience) from frontmatter
+
+### Step 4: Update Index
+
+Add slides to `presentations/_slides/index.json`:
 
 ```
-/index-presentation [path]
+Indexing: presentations/datafund/2025-01-15-pitch.md
+
+Extracted 12 slides:
+  1. Title Slide - [title, datafund]
+  2. Problem Statement - [problem, data-ownership, privacy]
+  3. Market Opportunity - [market, TAM, investor]
+  ...
+
+Added to slide library. These slides can now be reused in future presentations.
 ```
 
-**path** - Path to presentation metadata file
+### Step 5: Follow-up
 
-## Example
+- "Want to index another presentation?"
+- "Run /create-presentation to use these slides"
 
-```bash
-/index-presentation presentations/datafund/2025-01-15-investor-pitch.md
+## Your Boundaries
+
+**YOU CAN:**
+- Index slides from any presentation with Source InputText
+- Auto-generate tags from content
+- Re-index to update existing entries
+- Batch index multiple presentations
+
+**YOU CANNOT:**
+- Index presentations without Source InputText section
+- Index web-created Gamma presentations (no inputText available)
+- Modify the original presentation file (except marking as indexed)
+
+**YOU MUST:**
+- Preserve existing slide IDs when re-indexing
+- Mark presentation as `slides_indexed: true` in frontmatter
+- Warn if Source InputText is missing
+
+## Settings Reference
+
+```yaml
+slides:
+  auto_index_slides: true    # Auto-index after /create-presentation
 ```
-
-## Behavior
-
-1. **Read Presentation** - Load metadata file
-2. **Parse InputText** - Split by `---` separators
-3. **Extract Slides** - Get title and content for each
-4. **Generate Tags** - Auto-tag based on content
-5. **Update Index** - Add to `presentations/_slides/index.json`
-6. **Mark Indexed** - Update `slides_indexed: true` in metadata
-
-## Output
-
-```
-INDEXING PRESENTATION
-─────────────────────
-
-Reading: presentations/datafund/2025-01-15-investor-pitch.md
-
-Extracting slides...
-
-Slide 1: Title - Investor Pitch Q1 2025
-  Tags: [title, investor, q1]
-
-Slide 2: Problem Statement
-  Tags: [problem, data-ownership, privacy]
-
-Slide 3: Market Opportunity
-  Tags: [market, TAM, opportunity, investor]
-
-...
-
-Indexed 12 slides to presentations/_slides/index.json
-
-Presentation marked as indexed.
-```
-
-## Slide Index Format
-
-Each indexed slide:
-```json
-{
-  "id": "slide-uuid",
-  "source_presentation": "datafund/2025-01-15-investor-pitch.md",
-  "slide_number": 3,
-  "title": "Market Opportunity",
-  "content": "[inputText section content]",
-  "tags": ["market", "TAM", "opportunity"],
-  "audience": "investors",
-  "project": "datafund",
-  "created": "2025-01-15"
-}
-```
-
-## Tag Generation
-
-Tags are generated from:
-- Slide title keywords
-- Common terms in content
-- Audience from presentation metadata
-- Project from path
-
-## Re-indexing
-
-Running on an already-indexed presentation:
-- Updates existing slide entries
-- Adds any new slides
-- Removes slides no longer present
 
 ## Error Handling
 
-### File Not Found
+**File Not Found:**
 ```
-Error: Presentation not found: [path]
-Check the path and try again.
+Presentation not found: [path]
+
+Check the path and try again, or run /create-presentation first.
 ```
 
-### No InputText
+**No InputText:**
 ```
-Error: No Source InputText section found.
-Presentations must include the original inputText to be indexed.
+This presentation doesn't have a Source InputText section.
+
+Only presentations created via /create-presentation can be indexed.
+Web-created Gamma presentations can't be indexed (API limitation).
 ```
 
-### Already Indexed
+**Already Indexed:**
 ```
-Presentation already indexed (12 slides).
-Run again to re-index with updated content.
-```
+This presentation is already indexed (12 slides).
 
-## Batch Indexing
-
-To index all presentations:
-```bash
-# Use shell loop
-for f in presentations/**/*.md; do
-  /index-presentation "$f"
-done
+Re-index to update? This will refresh tags and content.
 ```
 
-## Related Commands
+## Related
 
 - `/create-presentation` - Create new presentation (auto-indexes)
 - `/sync-gamma` - Pull presentations from Gamma

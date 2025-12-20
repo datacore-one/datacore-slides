@@ -1,222 +1,125 @@
-# Create Presentation
+# /create-presentation
 
-Generate a Gamma presentation using the smart creation wizard.
+Create a Gamma presentation from prompts, files, or templates.
 
-## Usage
+## Workflow
 
-```
-/create-presentation [source]
-```
+### Step 1: Understand Intent
 
-**source** (optional):
-- File path: `/create-presentation notes/datafund/product-overview.md`
-- Topic: `/create-presentation "Investor pitch for Q1"`
-- Empty: Interactive wizard mode
+If invoked with no arguments or unclear intent, ask:
 
-## Smart Creation Workflow
+"What would you like to create?"
 
-### Step 1: Purpose & Context
+1. **Investor pitch** - Fundraising deck with problem, solution, traction, ask
+2. **Partner intro** - Company introduction for partnerships
+3. **Product demo** - Feature walkthrough with benefits
+4. **From content** - Transform existing blog post, notes, or outline
+5. **Blank** - Start fresh with just a topic
 
-Ask the user about the presentation purpose:
+If intent is clear from context (e.g., "create presentation from my blog post about X"), proceed directly.
 
-```
-Creating a new presentation...
+### Step 2: Gather Details
 
-? What's this presentation for?
-  1. Investor meeting
-  2. Partner introduction
-  3. Product demo
-  4. Conference/event talk
-  5. Team/internal meeting
-  6. Other (describe)
+Ask only what's missing:
 
-? Who's the audience?
-  > [text input]
+- **Audience**: "Who is this presentation for?"
+- **Project**: "Which project?" (if multiple exist in presentations/)
+- **Content**: If "from content" selected, ask for file path or paste
 
-? Which project is this for?
-  > [list projects from presentations/ subdirectories]
-```
+### Step 3: Search Slide Library
 
-### Step 2: Template Selection
-
-Offer relevant templates:
+Check `presentations/_slides/index.json` for relevant existing slides:
 
 ```
-? Start from a template?
-  1. Investor Pitch (15 slides: problem, solution, market, traction, team, ask)
-  2. Partner Intro (10 slides: who we are, what we do, collaboration)
-  3. Product Demo (12 slides: problem, demo, benefits, CTA)
-  4. Blank (start fresh)
-```
-
-### Step 3: Slide Library Search
-
-Search for relevant existing slides:
-
-1. Read `presentations/_slides/index.json`
-2. Filter by project, audience, and relevant tags
-3. Present top matches to user
-
-```
-Found relevant slides in your library:
+I found some slides you might want to reuse:
 
 From "Investor Pitch Dec 2024":
-  [x] Market Opportunity - $50B TAM analysis
-  [x] Competitive Landscape - 5 competitor comparison
+  - Market Opportunity ($50B TAM analysis)
+  - Competitive Landscape (5 competitor comparison)
 
-From "Partner Intro - Swarm":
-  [ ] Technical Architecture - System diagram
-
-? Include these slides? (space to toggle, enter to confirm)
+Include these? (I can also skip the library search)
 ```
 
-### Step 4: Custom Content
+### Step 4: Generate
 
-If source was provided, transform it. Otherwise ask:
-
-```
-? Add content for this presentation:
-  1. Enter text/outline
-  2. Select a file to convert
-  3. Skip (template + slides only)
-```
-
-### Step 5: Generate
-
-Combine all elements and call Gamma API:
-
-1. Assemble inputText from:
-   - Template structure (if selected)
-   - Selected slides from library
-   - Custom content
+1. Assemble inputText from template + reused slides + custom content
 2. Call `gamma_create_presentation` MCP tool
-3. Download PDF export
+3. Export PDF automatically
 4. Save metadata to `presentations/[project]/`
-5. Index new slides
+5. Index new slides for future reuse
 
-### Step 6: Output
-
-Display results:
+### Step 5: Present Results
 
 ```
-PRESENTATION CREATED
-────────────────────
-
-Title: Investor Pitch - Acme Corp Q1 2025
-Slides: 12 total (3 reused, 9 new)
+Created: "Investor Pitch - Q1 2025"
 
 View:     https://gamma.app/docs/abc123
-Download: exports/datafund/2025-01-15-acme-pitch.pdf
-Saved:    presentations/datafund/2025-01-15-acme-pitch.md
+Download: exports/datafund/2025-01-15-pitch.pdf
+Saved:    presentations/datafund/2025-01-15-pitch.md
 
-New slides indexed for future reuse.
+12 slides (3 reused, 9 new) - indexed for future reuse.
 ```
 
-## Quick Mode
+### Step 6: Follow-up
 
-If source is provided, skip interactive steps:
+Offer next actions:
+- "Want to create another presentation?"
+- "Should I open the Gamma link?"
+- "Need to make changes? (Note: I'll need to regenerate - Gamma doesn't support editing via API)"
 
-```bash
-# From file - auto-detect project from path
-/create-presentation notes/datafund/product-overview.md
+## Your Boundaries
 
-# From topic - minimal prompts
-/create-presentation "Q1 investor update"
-```
+**YOU CAN:**
+- Create presentations via Gamma API
+- Transform blog posts, notes, outlines into slides
+- Reuse slides from the indexed library
+- Export PDF/PPTX automatically
+- Index new slides for future reuse
 
-Quick mode still:
-- Searches slide library for relevant slides
-- Asks for audience if not obvious
-- Offers template if applicable
+**YOU CANNOT:**
+- Edit existing Gamma presentations (API limitation)
+- Pull slides from web-created presentations
+- Guarantee specific visual layouts
+- Access external URLs for content
 
-## Configuration
+**YOU MUST:**
+- Store inputText in metadata for future modifications
+- Ask for audience if not specified
+- Offer to index new slides
+- Warn if API key is missing
 
-### Environment Variables
+## Settings Reference
 
-Required in `.datacore/env/.env`:
-```bash
-GAMMA_API_KEY=sk-gamma-xxxxxxxx
-```
+Configure in `settings.local.yaml`:
 
-Optional:
-```bash
-GAMMA_DEFAULT_THEME=theme-id
-GAMMA_DEFAULT_FOLDER=folder-id
-```
-
-### Default Behavior
-
-- Format: `presentation` (not document/webpage)
-- TextMode: `generate` (rewrite and expand)
-- NumCards: Auto-calculated from content
-- ExportAs: `pdf` (always export)
-- ImageSource: `aiGenerated`
-
-## Output Files
-
-### Presentation Metadata
-`presentations/[project]/YYYY-MM-DD-[slug].md`
-
-### PDF Export
-`exports/[project]/YYYY-MM-DD-[slug].pdf`
-
-### Slide Index Update
-`presentations/_slides/index.json`
-
-## Examples
-
-### Interactive Mode
-```bash
-/create-presentation
-# Walks through full wizard
-```
-
-### From Existing Content
-```bash
-/create-presentation content/blog/2025-01-10-privacy-features.md
-# Transforms blog post into presentation
-```
-
-### From Topic
-```bash
-/create-presentation "Product demo for TechCrunch"
-# Generates from prompt with template
-```
-
-### With Specific Audience
-```bash
-/create-presentation "Partnership proposal" --audience "Swarm leadership"
-# Uses audience context for slide search
+```yaml
+slides:
+  auto_export_pdf: true         # Always export PDF (default: true)
+  auto_index_slides: true       # Index new slides (default: true)
+  skip_slide_library: false     # Skip reuse suggestions
+  default_num_cards: 10         # Default slide count
 ```
 
 ## Error Handling
 
-### Missing API Key
+**Missing API Key:**
 ```
-Error: GAMMA_API_KEY not configured.
+GAMMA_API_KEY not configured.
 
-Set your Gamma API key in .datacore/env/.env:
+Set it in .datacore/env/.env:
   GAMMA_API_KEY=sk-gamma-xxxxxxxx
 
-Get your API key from: Settings > API key in Gamma Pro
+Get your key from: gamma.app → Settings → API
 ```
 
-### No Slide Library
+**No Slide Library:**
 ```
-No slide library found. Creating fresh presentation.
+No slide library found - creating fresh presentation.
 
-Tip: Run /index-presentation after creating presentations
-to build your slide library for future reuse.
-```
-
-### API Error
-```
-Gamma API error: [error message]
-
-Check your API key and credit balance at gamma.app
+Tip: After creating, I'll index the slides for future reuse.
 ```
 
-## Related Commands
+## Related
 
-- `/index-presentation [path]` - Index slides from existing presentation
-- `/sync-gamma` - Pull presentations created in Gamma web app
+- `/index-presentation` - Index slides from existing presentation
+- `/sync-gamma` - Pull API-created presentations from Gamma
