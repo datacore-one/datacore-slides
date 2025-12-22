@@ -1,5 +1,45 @@
 # /sync-gamma
 
+## Command Context
+
+### When to Reference Slides Module
+
+**Always reference when:**
+- User wants to sync presentations from Gamma cloud
+- Checking for new presentations created via API
+- User mentions pulling or syncing presentations
+- Maintaining consistency between Gamma and Datacore
+
+**Key decisions the module informs:**
+- Which presentations are new since last sync
+- Whether presentations can be pulled (API-created only)
+- Where to store synced presentation metadata and PDFs
+- Whether to auto-index synced presentations
+
+### Quick Reference
+
+| Question | Answer |
+|----------|--------|
+| What can be synced? | Only API-created presentations, not web-created |
+| Where is sync state stored? | `.datacore/state/gamma-sync.json` |
+| What gets downloaded? | Metadata file and PDF export |
+| Can I sync web-created decks? | No (API limitation), only CLI/API-created presentations |
+
+### Agents This Command Invokes
+
+| Agent | Purpose |
+|-------|---------|
+| (None directly) | Uses Gamma API via MCP tools for listing and downloading |
+
+### Integration Points
+
+- **Gamma API** - MCP tool for listing generations and exports
+- **Sync state** - `.datacore/state/gamma-sync.json` tracks last sync
+- **Presentation storage** - `presentations/{project}/` and `exports/{project}/`
+- **/index-presentation** - Can be called after sync to index new slides
+
+---
+
 Pull presentations from Gamma to keep Datacore in sync.
 
 ## Workflow

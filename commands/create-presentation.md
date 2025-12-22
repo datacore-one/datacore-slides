@@ -1,5 +1,46 @@
 # /create-presentation
 
+## Command Context
+
+### When to Reference Slides Module
+
+**Always reference when:**
+- User requests to create, generate, or build a presentation
+- Converting content (blog posts, notes, outlines) to slides
+- Preparing for meetings (investor pitches, partner intros, demos)
+- User mentions Gamma, presentations, or decks
+
+**Key decisions the module informs:**
+- Whether to reuse slides from existing presentations
+- Which template fits the presentation purpose
+- How to transform different content types into slides
+- PDF export and metadata storage location
+
+### Quick Reference
+
+| Question | Answer |
+|----------|--------|
+| What can I create from? | Prompts, blog posts, notes, outlines, or templates |
+| Where do outputs go? | Metadata: `presentations/{project}/`, PDF: `exports/{project}/` |
+| Can I edit existing decks? | No (API limitation), must regenerate |
+| What templates exist? | investor-pitch, partner-intro, product-demo |
+
+### Agents This Command Invokes
+
+| Agent | Purpose |
+|-------|---------|
+| gamma-presentation-generator | Creates presentation via Gamma API |
+| gamma-slide-indexer | Indexes new slides for future reuse (auto) |
+
+### Integration Points
+
+- **Gamma API** - MCP tool for presentation generation
+- **Slide library** - `presentations/_slides/index.json` for reusable content
+- **Templates** - `templates/*.md` for structured presentation types
+- **Settings** - `settings.local.yaml` for auto-export and indexing preferences
+
+---
+
 Create a Gamma presentation from prompts, files, or templates.
 
 ## Workflow

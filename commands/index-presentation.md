@@ -1,5 +1,45 @@
 # /index-presentation
 
+## Command Context
+
+### When to Reference Slides Module
+
+**Always reference when:**
+- User wants to index slides from a created presentation
+- Building the slide library for reusable content
+- User mentions finding orphan presentations or unindexed decks
+- Preparing presentations for future reuse
+
+**Key decisions the module informs:**
+- Which presentations can be indexed (API-created only)
+- How tags are generated from slide content
+- Where the slide index is maintained
+- Whether to re-index already indexed presentations
+
+### Quick Reference
+
+| Question | Answer |
+|----------|--------|
+| What can be indexed? | Only presentations with Source InputText section |
+| Where is the index? | `presentations/_slides/index.json` |
+| Can I index web-created decks? | No (API limitation), only CLI-created presentations |
+| What if already indexed? | Offer to re-index (updates tags and content) |
+
+### Agents This Command Invokes
+
+| Agent | Purpose |
+|-------|---------|
+| gamma-slide-indexer | Parses slides, generates tags, updates index |
+
+### Integration Points
+
+- **Slide library** - Central registry at `presentations/_slides/index.json`
+- **Presentation metadata** - Marks presentations as `slides_indexed: true`
+- **/create-presentation** - Auto-indexes after creation if enabled
+- **Settings** - `settings.local.yaml` for auto-indexing preferences
+
+---
+
 Index slides from a presentation for future reuse.
 
 ## Workflow
