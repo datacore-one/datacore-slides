@@ -1,0 +1,94 @@
+# Datafund Presentation Template
+# Based on Datafund Brand Guidelines 0.1b
+
+name: datafund
+description: Ultra-minimal style with soft gradient orbs for Datafund presentations
+
+# Brand Colors
+colors:
+  primal:
+    black: "#000000"
+    gray: "#D9D9D9"
+    white: "#FFFFFF"
+    blue: "#0000FF"  # Pure blue - use sparingly
+
+  accents:
+    # Soft, muted versions for backgrounds and diagrams
+    pale_blue: "#E8F0FE"
+    soft_cyan: "#B8E0E8"
+    soft_orange: "#FFE4D0"
+    soft_peach: "#FFF0E8"
+    light_gray: "#F5F5F5"
+
+# Typography
+fonts:
+  h1:
+    family: "Akzidenz-Grotesk Pro"
+    weight: "Regular"
+    style: "normal"
+  h2:
+    family: "Akzidenz-Grotesk Pro"
+    weight: "Medium"
+    style: "normal"
+  body:
+    family: "Graphik"
+    weight: "Regular"
+    style: "normal"
+  annotation:
+    family: "Graphik"
+    weight: "Regular"
+    style: "italic"
+
+# Style Guidelines
+style:
+  negative_space: "60-80%"
+  font_weight: "Regular only - NO bold"
+  font_size: "Small, elegant"
+  backgrounds: "Light/white with soft gradient orbs"
+  lines: "Fine, delicate connections"
+  icons: "Minimal, subtle"
+
+# Forbidden
+forbidden:
+  - "Bold text"
+  - "Saturated/intense colors"
+  - "Busy backgrounds"
+  - "Stock imagery"
+  - "Large fonts"
+  - "Heavy line weights"
+
+# Logo
+logo:
+  path: "1-datafund/1-tracks/comms/brand/guidelines/Datafund Logo/JPEG _ PNG/Datafund Logo on transparent.png"
+  placement: "bottom-right corner, small and subtle"
+  symbol: "Phi (Φ) inside D shape + 'Datafund' text"
+
+# Midjourney Prompt Template
+midjourney_prompt: |
+  Ultra-minimal presentation background,
+  soft gradient orbs in pale blue and soft peach tones,
+  delicate fine line connections,
+  80% negative space,
+  light white base,
+  elegant refined tech aesthetic,
+  Datafund brand style,
+  --ar 16:9 --v 6.1
+
+# Gemini Style Prompt
+gemini_style_prompt: |
+  STYLE: Ultra-minimal. Light/white background with soft gradient orbs.
+  SOFT, MUTED, PALE colors only - no intense or saturated colors.
+  Massive negative space. Elegant and refined.
+
+  DATAFUND BRAND REQUIREMENTS:
+  - Colors: SOFT and MUTED only - pale blue, light gray, soft orange/peach
+  - NO intense or saturated colors - everything gentle and refined
+  - Bullet points and accents in PALE, SOFT tones that blend with background
+  - Typography: Regular weight, NOT bold, small elegant size
+  - 80%+ negative space
+  - Fine delicate lines for connections
+  - CRITICAL: Perfect spelling of ALL text
+
+# Reference
+reference_presentation: "1-datafund/1-tracks/comms/presentations/agent-economy-roadmap/Agent-Economy-Roadmap-v5.pdf"
+reference_style: "undavos-keynote-v10 slide 19 - soft gradient orbs, fine lines, massive negative space"

@@ -1,21 +1,25 @@
 name: slides
 version: 1.0.0
-description: Visual content generation - presentations (Gamma.app) and images (Gemini/Nano Banana)
+description: Visual content generation - presentations (Gamma.app) with AI-powered backgrounds
 author: datacore
 repository: https://github.com/datacore-one/datacore-slides
+
+# Dependencies
+dependencies:
+  - image-generation  # Uses Gemini image generation for backgrounds
 
 use_cases:
   - Creating investor pitch decks
   - Transforming blog posts to presentations
   - Building reusable slide libraries
-  - Generating images from prompts (profile pics, backgrounds, graphics)
+  - Creating AI-powered presentation backgrounds (via image-generation module)
   - Creating branded presentation templates
 
 requires:
   env_vars:
     required:
       - GAMMA_API_KEY          # sk-gamma-xxxxxxxx format
-      - GEMINI_API_KEY         # AIza... for Nano Banana image generation
+      - GEMINI_API_KEY         # AIza... for image backgrounds (shared with image-generation module)
     optional:
       - GAMMA_DEFAULT_THEME    # Default theme ID
       - GAMMA_DEFAULT_FOLDER   # Default folder ID
@@ -23,16 +27,28 @@ requires:
 provides:
   agents:
     - name: gamma-presentation-generator
-      trigger: ":AI:presentation:"
-      description: Creates presentations from prompts or existing content
+      trigger: ":AI:presentation:gamma:"
+      description: Creates presentations via Gamma.app API
     - name: gamma-slide-indexer
       trigger: ":AI:presentation:index:"
       description: Indexes slides from presentations for reuse
+    - name: presentation-generator
+      trigger: ":AI:presentation:"
+      description: Generates visual presentations using Gemini image composition with brand templates
 
   commands:
     - create-presentation       # Smart creation wizard
     - index-presentation        # Index slides for reuse
     - sync-gamma               # Pull presentations from Gamma
+
+  mcp_servers:
+    gamma:
+      command: node
+      args: ["{module_path}/mcp-server/dist/index.js"]
+      env:
+        GAMMA_API_KEY: "${GAMMA_API_KEY}"
+      meta:
+        description: "Gamma.app presentation creation"
 
 # Output locations (relative to space root)
 outputs:
@@ -62,4 +78,7 @@ hooks:
     echo ""
     echo "Commands:"
     echo "  /create-presentation - Create Gamma presentations"
-    echo "  Ask me to 'generate an image of...' for Nano Banana"
+    echo "  /create-image - Generate images for presentations (requires image-generation module)"
+    echo ""
+    echo "Note: This module uses image-generation module for Gemini backgrounds."
+    echo "Install image-generation module for full image generation capabilities."
