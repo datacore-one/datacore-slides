@@ -36,7 +36,7 @@ provides:
       trigger: ":AI:presentation:"
       description: Generates visual presentations using Gemini image composition with brand templates
 
-  commands:
+  skills:
     - create-presentation       # Smart creation wizard
     - index-presentation        # Index slides for reuse
     - sync-gamma               # Pull presentations from Gamma
