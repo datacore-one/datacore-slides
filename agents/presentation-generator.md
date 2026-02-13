@@ -218,6 +218,30 @@ Explicitly state what NOT to do:
 - NO stock imagery
 - NO large fonts
 
+## Single-Slide Iteration Workflow
+
+The most effective workflow for polishing presentations:
+
+### Initial Generation
+
+1. Write full deck markdown with `---` slide separators
+2. Generate all slides (without logo): `nano-banana-slides.py deck.md --output-dir slides/ --resolution 4k --reference style.pdf`
+3. Add logos and compile PDF: `nano-banana-slides.py --rebuild-pdf slides/ --add-logo logo.svg --pdf-name my-deck`
+
+### Fixing Individual Slides
+
+1. Write corrected markdown for one slide to a temp file
+2. Generate to a temp directory: `nano-banana-slides.py temp-slide.md --output-dir temp/ --reference style.pdf`
+3. Copy the generated PNG into the main slides directory (matching filename)
+4. Rebuild entire PDF: `nano-banana-slides.py --rebuild-pdf slides/ --add-logo logo.svg --pdf-name my-deck`
+
+### Key Principles
+
+- **Always regenerate** - never edit text in images programmatically (font mismatch)
+- **Use specific references** - a single-page reference PDF from a good slide controls style consistency
+- **Design notes guide Gemini** - append "Design notes: use icons for each bullet, diagram showing X" at end of slide markdown
+- **Post-process logos** - use `--add-logo` (reliable) instead of `--logo` (unreliable Gemini baked-in)
+
 ## Iteration Patterns
 
 Common feedback and fixes:
@@ -229,6 +253,10 @@ Common feedback and fixes:
 | "Colors too intense" | Add "SOFT, MUTED, PALE colors only" |
 | "Just text lists" | Use visual_type diagrams instead |
 | "Wrong brand" | Check template colors and fonts |
+| "Two logos" | Don't use `--logo`, use `--add-logo` post-processing |
+| "Font mismatch" | Never edit text in images programmatically, always regenerate |
+| "Inconsistent layout" | Create single-page reference PDF from a good slide, use as `--reference` |
+| "Wrong style" | Sakal v19 reference → elegant/rich; slide 4 reference → consistent/minimal |
 
 ## Example Generation Script
 

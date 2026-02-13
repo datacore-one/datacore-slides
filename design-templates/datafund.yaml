@@ -59,8 +59,11 @@ forbidden:
 
 # Logo
 logo:
-  path: "1-datafund/1-tracks/comms/brand/guidelines/Datafund Logo/JPEG _ PNG/Datafund Logo on transparent.png"
-  placement: "bottom-right corner, small and subtle"
+  svg_path: "1-datafund/1-tracks/comms/brand/2 SVG/1_Datafund_Main_Logo_3.svg"
+  png_path: "1-datafund/1-tracks/comms/brand/guidelines/Datafund Logo/JPEG _ PNG/Datafund Logo on transparent.png"
+  placement: "bottom-right corner, 3% margin"
+  height: 160   # pixels at 4K resolution
+  width: 472    # auto-calculated from aspect ratio
   symbol: "Phi (Φ) inside D shape + 'Datafund' text"
 
 # Midjourney Prompt Template
@@ -90,5 +93,8 @@ gemini_style_prompt: |
   - CRITICAL: Perfect spelling of ALL text
 
 # Reference
-reference_presentation: "1-datafund/1-tracks/comms/presentations/agent-economy-roadmap/Agent-Economy-Roadmap-v5.pdf"
+reference_presentations:
+  primary: "1-datafund/1-tracks/comms/presentations/sakal-proposal/slides-v19/all-slides.pdf"
+  style_note: "Sakal v19 produces rich, icon-heavy, elegant results"
+  legacy: "1-datafund/1-tracks/comms/presentations/agent-economy-roadmap/Agent-Economy-Roadmap-v5.pdf"
 reference_style: "undavos-keynote-v10 slide 19 - soft gradient orbs, fine lines, massive negative space"

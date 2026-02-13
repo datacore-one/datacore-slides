@@ -189,6 +189,22 @@ for part in response.parts:
 - Social media graphics
 - Icons and logos
 
+### Nano Banana Iteration Workflow
+
+Proven workflow for high-quality slide decks:
+
+1. **Write deck markdown** with `---` separators between slides
+2. **Generate all slides**: `nano-banana-slides.py deck.md --output-dir slides/ --resolution 4k --reference style.pdf`
+3. **Add logos and compile**: `nano-banana-slides.py --rebuild-pdf slides/ --add-logo logo.svg --pdf-name my-deck`
+4. **Iterate single slides**: write temp markdown → generate to temp dir → copy PNG to slides dir → rebuild PDF
+5. **Design notes in markdown**: append "Design notes: ..." to guide Gemini on icons, diagrams, layout
+6. **Never use `--logo` flag** (unreliable Gemini baked-in logos) — always use `--add-logo` for post-processing
+
+**Important patterns:**
+- Never programmatically edit text in generated images (font mismatch) — always regenerate
+- Use a single good slide as `--reference` PDF for style consistency across the deck
+- Sakal v19 reference produces rich, icon-heavy, elegant results
+
 ## Environment Variables
 
 Located in `.datacore/env/.env`:

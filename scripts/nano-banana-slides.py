@@ -7,9 +7,11 @@ Saves images locally and compiles into PDF.
 
 Usage:
     python nano-banana-slides.py <markdown_file> [--output-dir <dir>] [--test <n>]
+    python nano-banana-slides.py --rebuild-pdf <slides_dir> [--add-logo <logo>] [--pdf-name <name>]
 
 Example:
     python nano-banana-slides.py presentation.md --output-dir ./slides --test 3
+    python nano-banana-slides.py --rebuild-pdf ./slides --add-logo logo.svg --pdf-name my-deck
 """
 
 import os
@@ -153,12 +155,11 @@ def get_slide_type_instructions(slide_type: str) -> str:
     """Get layout instructions based on slide type."""
     if slide_type == 'comparison':
         return """LAYOUT TYPE: TWO-COLUMN COMPARISON
-- Split content into two clear columns
-- Left column: "Traditional/Old approach"
-- Right column: "New approach/Data Tokenization"
+- Split content into two clear columns based on the actual content provided
 - Use subtle visual divider between columns
-- Highlight labels (like "THE RESULT") should be styled consistently
-- Both columns should have equal visual weight"""
+- Both columns should have equal visual weight
+- Do NOT invent column headings - only use headings from the actual content
+- Do NOT add content that is not in the source material"""
 
     elif slide_type == 'table':
         return """LAYOUT TYPE: DATA TABLE
@@ -174,9 +175,11 @@ def get_slide_type_instructions(slide_type: str) -> str:
         return """LAYOUT TYPE: BULLET LIST
 - Use small, elegant icons instead of dashes or dots
 - Clean left alignment with consistent indentation
-- Generous spacing between items
+- SMALL font size for bullet text (body text should be noticeably smaller than title)
+- Generous spacing between items - use whitespace liberally
+- At least 40% of the slide area should be empty white space
 - Group related items visually
-- Section headers (like "Scope:", "Structure:") should be bold/highlighted"""
+- Section headers should be slightly emphasized but not oversized"""
 
     else:
         return """LAYOUT TYPE: STANDARD
@@ -197,56 +200,65 @@ def generate_slide_image(slide: dict, model, total_slides: int = 7, reference_im
 
 BRAND: Datafund - data tokenization fintech company.
 
-LOGO PLACEMENT:
-- Copy the provided logo EXACTLY to bottom-right corner (small, ~80px)
-- NEVER redraw or modify the logo - pixel-perfect copy only
+LOGO: DO NOT draw any logo, brand mark, or icon in the corner. Leave the bottom-right corner completely empty - the real logo will be added in post-processing.
 
 DESIGN PHILOSOPHY:
-- Ultra-minimal, clean, premium (like Apple keynotes)
-- Maximum whitespace, minimum elements
-- ONE simple visual per slide - no complex diagrams
-- Text should be sparse - let visuals communicate
+- Ultra-minimal, refined, premium (like Apple keynotes)
+- MASSIVE negative space (80%+ of slide should be empty white/light space)
+- ONE simple visual element per slide maximum
+- Text should be sparse and elegant - let whitespace communicate
+- Soft, calming, refined aesthetic
 
-COLORS:
-- Background: Pure white (#FFFFFF)
-- Text: Black (#000000)
-- Accent: Mint green (#4ADE80) - sparingly
-- NO gradients, NO colored backgrounds
+COLORS (CRITICAL - SOFT AND MUTED ONLY):
+- Background: Pure white (#FFFFFF) with SOFT GRADIENT ORBS
+- Background orbs: Pale blue (#E8F0FE), soft cyan (#B8E0E8), soft peach (#FFF0E8), soft lavender
+- Orbs should be very subtle, semi-transparent, floating gently
+- Text: Black (#000000) - Regular weight only, NOT bold
+- NO intense or saturated colors anywhere
+- NO mint green, NO bright colors
 
 TYPOGRAPHY:
-- Sans-serif (Inter/Helvetica)
-- Title: Bold, large, top-left
-- Body: Minimal - 3-5 bullet points MAX or one short paragraph
-- NO walls of text
+- Sans-serif (Inter/Helvetica style)
+- Title: Medium size, Regular weight (NOT bold), top-left aligned
+- Body: SMALL elegant font size, Regular weight only
+- 3-5 bullet points MAX or one short paragraph
+- NO bold text anywhere - everything Regular weight
+- Prioritize readability through whitespace, not large fonts
 
-BACKGROUND PATTERN - "Conway's Game of Data":
-- Subtle grid of 0s and 1s (binary digits) in very light gray (#E5E7EB, 10% opacity)
-- Scattered across background like a cellular automaton pattern
-- Some 0s and 1s clustered, some isolated - suggesting data emergence
-- Must NOT interfere with readability - barely visible
-- Creates subtle "digital/data" texture across all slides
+BACKGROUND STYLE - "Soft Gradient Orbs":
+- Gentle, soft gradient orbs floating in background
+- Colors: pale blue, soft peach, light lavender, soft cyan
+- Orbs should be semi-transparent, blurred edges, dreamy quality
+- Some larger, some smaller - organic arrangement
+- Must NOT interfere with readability - very subtle
+- Creates refined, calming, premium atmosphere
 
 LAYOUT:
 - WIDE 16:9 landscape format (NOT square)
-- Generous margins (100px)
+- Generous margins (100px+)
 - Content left-aligned
-- Simple icons or single illustration on right if needed
-- Logo bottom-right corner
+- Simple diagram or icon on right if needed
+- Fine delicate lines for any connections
+- 80%+ empty space
 
 VISUAL STYLE:
-- Simple line icons (not detailed illustrations)
-- Clean geometric shapes
-- Minimal diagrams - circles, arrows, simple flows
+- Fine, delicate line work
+- Soft, muted colors only
+- Simple circle diagrams with thin lines
 - NO complex infographics
 - NO stock photo style imagery
+- Refined and elegant, not tech-heavy
 
 FORBIDDEN:
 - Square aspect ratio
+- Bold text anywhere
+- Intense/saturated colors (no mint green, bright blue, etc.)
 - Dense text blocks
 - Complex multi-element diagrams
-- Recreating/modifying the logo
+- Drawing ANY logo, brand mark, or icon
 - Busy or cluttered layouts
-- Centered body text"""
+- Large/oversized fonts
+- Heavy line weights"""
 
     # Slide-specific prompt
     slide_prompt = f"""Generate slide {slide['number']} of {total_slides}.
@@ -377,30 +389,127 @@ def save_image(image_data: bytes, output_path: str, target_size: tuple = (3840, 
         return False, (0, 0)
 
 
-def create_pdf(image_paths: list[str], output_path: str):
-    """Compile images into a PDF."""
+def create_pdf(image_paths: list[str], output_path: str, page_width: float = None):
+    """Compile images into a PDF.
+
+    Args:
+        page_width: PDF page width in points (1 pt = 1/72 inch).
+                    Default None uses A4 landscape width (842 pt).
+    """
     if not image_paths:
         print("No images to compile into PDF")
         return
 
-    # Get first image to determine size
-    first_img = Image.open(image_paths[0])
-    width, height = first_img.size
+    # A4 landscape width = 297mm = 842 points
+    if page_width is None:
+        page_width = 842.0
 
-    # Create PDF with custom page size matching image aspect ratio
-    c = canvas.Canvas(output_path, pagesize=(width, height))
+    # Get first image to determine aspect ratio
+    first_img = Image.open(image_paths[0])
+    img_w, img_h = first_img.size
+    aspect = img_w / img_h
+
+    # Scale page to target width, maintaining aspect ratio
+    page_height = page_width / aspect
+
+    c = canvas.Canvas(output_path, pagesize=(page_width, page_height))
 
     for img_path in image_paths:
-        c.drawImage(img_path, 0, 0, width, height)
+        c.drawImage(img_path, 0, 0, page_width, page_height)
         c.showPage()
 
     c.save()
-    print(f"PDF created: {output_path}")
+    print(f"PDF created: {output_path} ({page_width:.0f}x{page_height:.0f} pt)")
+
+
+def add_logo_to_image(image_path: str, logo_path: str, logo_height: int = 160, margin_pct: float = 0.03):
+    """Overlay logo on an image in the bottom-right corner with transparency.
+
+    Args:
+        image_path: Path to the slide image (PNG)
+        logo_path: Path to logo file (SVG or PNG)
+        logo_height: Logo height in pixels (width auto-calculated from aspect ratio)
+        margin_pct: Margin as percentage of image dimensions (default 3%)
+    """
+    # Load the slide image
+    slide = Image.open(image_path).convert('RGBA')
+    slide_w, slide_h = slide.size
+
+    # Load logo - handle SVG via cairosvg
+    if logo_path.lower().endswith('.svg'):
+        try:
+            import cairosvg
+            # Render SVG to PNG at target height
+            png_data = cairosvg.svg2png(url=logo_path, output_height=logo_height)
+            logo = Image.open(BytesIO(png_data)).convert('RGBA')
+        except ImportError:
+            print("  Warning: cairosvg not installed for SVG support. Run: pip install cairosvg")
+            return False
+    else:
+        logo = Image.open(logo_path).convert('RGBA')
+        # Resize to target height maintaining aspect ratio
+        logo_w, logo_h = logo.size
+        scale = logo_height / logo_h
+        logo = logo.resize((int(logo_w * scale), logo_height), Image.Resampling.LANCZOS)
+
+    # Calculate position: bottom-right with margin
+    margin_x = int(slide_w * margin_pct)
+    margin_y = int(slide_h * margin_pct)
+    logo_w, logo_h = logo.size
+    x = slide_w - logo_w - margin_x
+    y = slide_h - logo_h - margin_y
+
+    # Composite with alpha transparency
+    slide.paste(logo, (x, y), logo)
+
+    # Save back as RGB PNG
+    slide.convert('RGB').save(image_path, 'PNG', optimize=False)
+    return True
+
+
+def rebuild_pdf_from_directory(slides_dir: str, pdf_name: str, logo_path: str = None, logo_height: int = 160):
+    """Rebuild PDF from existing PNGs in a directory.
+
+    Args:
+        slides_dir: Directory containing slide PNGs (sorted alphabetically)
+        pdf_name: PDF filename without extension
+        logo_path: Optional logo to overlay on each slide before PDF compilation
+        logo_height: Logo height in pixels
+    """
+    slides_path = Path(slides_dir)
+    if not slides_path.is_dir():
+        print(f"Error: {slides_dir} is not a directory")
+        return
+
+    # Find all PNGs, sorted by name
+    png_files = sorted(slides_path.glob("*.png"))
+    if not png_files:
+        print(f"Error: No PNG files found in {slides_dir}")
+        return
+
+    print(f"Found {len(png_files)} slides in {slides_dir}")
+
+    # Add logo to each slide if requested
+    if logo_path:
+        print(f"Adding logo: {logo_path} (height: {logo_height}px)")
+        for png in png_files:
+            success = add_logo_to_image(str(png), logo_path, logo_height)
+            if success:
+                print(f"  Logo added: {png.name}")
+            else:
+                print(f"  Logo failed: {png.name}")
+
+    # Build PDF
+    image_paths = [str(p) for p in png_files]
+    pdf_path = slides_path / f"{pdf_name}.pdf"
+    create_pdf(image_paths, str(pdf_path))
+    print(f"PDF rebuilt: {pdf_path}")
 
 
 def main():
     parser = argparse.ArgumentParser(description='Generate slides using Nano Banana (Gemini)')
-    parser.add_argument('markdown_file', help='Path to markdown presentation file')
+    parser.add_argument('markdown_file', nargs='?', default=None,
+                        help='Path to markdown presentation file')
     parser.add_argument('--output-dir', '-o', default='./nano-banana-output',
                         help='Output directory for images')
     parser.add_argument('--test', '-t', type=int, default=0,
@@ -411,11 +520,33 @@ def main():
     parser.add_argument('--reference', '-r', default=None,
                         help='Path to reference PDF for style matching')
     parser.add_argument('--logo', '-l', default=None,
-                        help='Path to logo image file (PNG/SVG) for brand consistency')
+                        help='Path to logo image for Gemini reference (unreliable - logo is passed to '
+                             'Gemini but the system prompt says "don\'t draw logos"). '
+                             'Use --add-logo for reliable post-processing logo placement.')
+    parser.add_argument('--add-logo', default=None,
+                        help='Path to logo file (SVG or PNG) to overlay in post-processing. '
+                             'Placed bottom-right with transparency. Recommended over --logo.')
+    parser.add_argument('--logo-height', type=int, default=160,
+                        help='Logo height in pixels for --add-logo (default: 160, good for 4K)')
     parser.add_argument('--resolution', default='4k',
                         choices=['1080p', '4k'],
                         help='Output resolution (default: 4k for highest quality)')
+    parser.add_argument('--pdf-name', '-p', default=None,
+                        help='PDF filename (without extension). Defaults to markdown filename.')
+    parser.add_argument('--rebuild-pdf', default=None, metavar='SLIDES_DIR',
+                        help='Skip generation, rebuild PDF from existing PNGs in directory. '
+                             'Combine with --add-logo to add logos before compilation.')
     args = parser.parse_args()
+
+    # Handle --rebuild-pdf mode (no generation, just recompile)
+    if args.rebuild_pdf:
+        pdf_name = args.pdf_name or 'all-slides'
+        rebuild_pdf_from_directory(args.rebuild_pdf, pdf_name, args.add_logo, args.logo_height)
+        return
+
+    # Normal generation mode requires markdown file
+    if not args.markdown_file:
+        parser.error("markdown_file is required (unless using --rebuild-pdf)")
 
     # Check API key
     api_key = os.environ.get('GEMINI_API_KEY')
@@ -433,10 +564,10 @@ def main():
         print(f"Loading reference: {args.reference}")
         reference_images = load_reference_images(args.reference)
 
-    # Load logo if provided
+    # Load logo if provided (for Gemini reference - unreliable)
     logo_image = None
     if args.logo:
-        print(f"Loading logo: {args.logo}")
+        print(f"Loading logo for Gemini reference: {args.logo}")
         logo_image = load_logo_image(args.logo)
 
     # Get target resolution
@@ -509,9 +640,23 @@ def main():
                 'status': 'generation_failed'
             })
 
+    # Post-processing: add logo overlay if requested
+    if args.add_logo and image_paths:
+        print(f"\nPost-processing: adding logo from {args.add_logo}")
+        for img_path in image_paths:
+            success = add_logo_to_image(img_path, args.add_logo, args.logo_height)
+            if success:
+                print(f"  Logo added: {Path(img_path).name}")
+            else:
+                print(f"  Logo failed: {Path(img_path).name}")
+
     # Create PDF
     if image_paths:
-        pdf_path = output_dir / "all-slides.pdf"
+        if args.pdf_name:
+            pdf_name = args.pdf_name
+        else:
+            pdf_name = Path(args.markdown_file).stem
+        pdf_path = output_dir / f"{pdf_name}.pdf"
         create_pdf(image_paths, str(pdf_path))
 
     # Save log
