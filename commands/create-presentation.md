@@ -95,8 +95,8 @@ Include these? (I can also skip the library search)
 Created: "Investor Pitch - Q1 2025"
 
 View:     https://gamma.app/docs/abc123
-Download: exports/datafund/2025-01-15-pitch.pdf
-Saved:    presentations/datafund/2025-01-15-pitch.md
+Download: exports/my-project/2025-01-15-pitch.pdf
+Saved:    presentations/my-project/2025-01-15-pitch.md
 
 12 slides (3 reused, 9 new) - indexed for future reuse.
 ```

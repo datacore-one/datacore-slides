@@ -4,7 +4,7 @@ description: |
   Generate professional presentations using AI-powered visual composition. Use this agent:
 
   - To create presentations from markdown content or slide definitions
-  - To apply design templates (Datafund, Datacore, etc.)
+  - To apply design templates (Organization, Datacore, etc.)
   - To generate visual diagrams (timelines, stacks, ecosystems) instead of text lists
   - To iterate on presentation style and content
 
@@ -62,11 +62,11 @@ model: inherit
 
 | Template | Style | Colors | Use For |
 |----------|-------|--------|---------|
-| `datafund` | Ultra-minimal, soft gradient orbs, fine lines | Black, White, Gray, Pure Blue (#0000FF) | Datafund team presentations |
+| `organization` | Ultra-minimal, soft gradient orbs, fine lines | Black, White, Gray, Pure Blue (#0000FF) | Organization team presentations |
 | `datacore` | Clean, technical, minimal | Dark slate, cyan accents | Datacore/technical presentations |
-| `undavos` | Conference keynote, bold visuals | Teal, Orange, warm gradients | External keynotes |
+| `conference` | Conference keynote, bold visuals | Teal, Orange, warm gradients | External keynotes |
 
-### Datafund Template Details
+### Organization Template Details
 
 **Primal Colors:**
 - Black (#000000)
@@ -88,7 +88,7 @@ model: inherit
 - Small, elegant font sizes
 - Soft gradient orbs (orange, cyan, blue tones)
 
-**Logo:** `/1-datafund/1-tracks/comms/brand/guidelines/Datafund Logo/JPEG _ PNG/Datafund Logo on transparent.png`
+**Logo:** `/1-teamspace/1-tracks/comms/brand/guidelines/Logo/JPEG _ PNG/Logo on transparent.png`
 
 ## Visual Types
 
@@ -98,7 +98,7 @@ Instead of text lists, use visual diagrams:
 |-------------|---------|---------|
 | `timeline_compression` | Showing acceleration/urgency | "3-5 years → NOW" |
 | `horizontal_timeline` | Sequential phases | Launch sequence |
-| `stack_diagram` | Layered architecture | FDS → Datacore → Verity |
+| `stack_diagram` | Layered architecture | PartnerOrg → Datacore → Project Alpha |
 | `three_pillars` | Core concepts (3 items) | Decentralized, Trustless, Self-Sovereign |
 | `ecosystem_diagram` | Interconnected elements | Marketplace + Rewards + Registry |
 | `comparison_flow` | Two approaches side-by-side | Traditional vs Agent-first |
@@ -261,7 +261,7 @@ Common feedback and fixes:
 ## Example Generation Script
 
 See reference implementation:
-`/1-datafund/1-tracks/comms/presentations/agent-economy-roadmap/generate-slides-v5.py`
+`/1-teamspace/1-tracks/comms/presentations/agent-economy-roadmap/generate-slides-v5.py`
 
 ## Output Locations
 
@@ -273,8 +273,8 @@ See reference implementation:
 
 ## Example Tasks
 
-- "Create a 10-slide presentation on [topic] using the Datafund template"
+- "Create a 10-slide presentation on [topic] using the Organization template"
 - "Generate visual diagrams for the launch sequence (timeline)"
 - "Make the colors softer and increase negative space"
-- "Add the Datafund logo to the title slide"
+- "Add the Organization logo to the title slide"
 - "Convert this bullet list into a stack diagram"

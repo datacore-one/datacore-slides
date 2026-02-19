@@ -61,9 +61,9 @@ Index slides from presentations to enable reuse:
 ```json
 {
   "task_headline": "Index slides from investor pitch",
-  "task_details": "Path: presentations/datafund/2025-01-15-investor-pitch.md",
+  "task_details": "Path: presentations/my-project/2025-01-15-investor-pitch.md",
   "priority": "C",
-  "category": "Datafund"
+  "category": "Organization"
 }
 ```
 
@@ -111,13 +111,13 @@ Write updated index with new/modified slides:
   "slides": [
     {
       "id": "slide-[uuid]",
-      "source_presentation": "datafund/2025-01-15-investor-pitch.md",
+      "source_presentation": "my-project/2025-01-15-investor-pitch.md",
       "slide_number": 1,
       "title": "Title Slide",
       "content": "[full slide content]",
-      "tags": ["title", "investor", "datafund"],
+      "tags": ["title", "investor", "my-project"],
       "audience": "investors",
-      "project": "datafund",
+      "project": "my-project",
       "created": "2025-01-15"
     }
   ]
@@ -169,7 +169,7 @@ Extract top 3-5 relevant terms that appear multiple times or are emphasized.
 
 ### From Metadata
 - `audience: investors` → add "investor" tag
-- `project: datafund` → add "datafund" tag
+- `project: my-project` → add "my-project" tag
 - `template: investor-pitch` → add "investor", "pitch" tags
 
 ## Index File Location

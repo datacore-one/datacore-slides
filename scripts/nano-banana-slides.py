@@ -198,7 +198,7 @@ def generate_slide_image(slide: dict, model, total_slides: int = 7, reference_im
     # System style description (consistent across all slides)
     system_style = """Generate a WIDE presentation slide image. CRITICAL: Output must be 16:9 LANDSCAPE aspect ratio (width much greater than height, like 1920x1080 or 1456x816). NOT square. NOT portrait.
 
-BRAND: Datafund - data tokenization fintech company.
+BRAND: Organization - data tokenization company.
 
 LOGO: DO NOT draw any logo, brand mark, or icon in the corner. Leave the bottom-right corner completely empty - the real logo will be added in post-processing.
 

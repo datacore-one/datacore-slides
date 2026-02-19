@@ -43,12 +43,12 @@ Presentations organized by project/space:
 ├── presentations/                # Presentation library
 │   ├── _slides/                 # Indexed slide sections
 │   │   └── index.json           # Searchable slide index
-│   ├── datafund/                # Project: Datafund
+│   ├── my-project/                # Project: Example
 │   │   └── 2025-01-investor-pitch.md
 │   └── project-x/               # Project: X
 │       └── 2025-01-demo.md
 └── exports/                      # Downloaded files
-    └── datafund/
+    └── my-project/
         └── 2025-01-investor-pitch.pdf
 ```
 
@@ -59,18 +59,18 @@ Each presentation stored as markdown with frontmatter:
 ```markdown
 ---
 type: presentation
-title: Datafund Investor Pitch Q1 2025
+title: Organization Investor Pitch Q1 2025
 gamma_id: abc123
 gamma_url: https://gamma.app/docs/...
-pdf_url: exports/datafund/2025-01-investor-pitch.pdf
-project: datafund
+pdf_url: exports/my-project/2025-01-investor-pitch.pdf
+project: my-project
 audience: investors
 template: investor-pitch
 created: 2025-01-15
 slides_indexed: true
 ---
 
-# Datafund Investor Pitch Q1 2025
+# Organization Investor Pitch Q1 2025
 
 **View**: [Gamma URL]
 **Download**: [PDF]
@@ -96,13 +96,13 @@ Slides indexed for reuse in `presentations/_slides/index.json`:
   "slides": [
     {
       "id": "slide-001",
-      "source_presentation": "datafund/2025-01-investor-pitch.md",
+      "source_presentation": "my-project/2025-01-investor-pitch.md",
       "slide_number": 3,
       "title": "Market Opportunity",
       "content": "[inputText section]",
       "tags": ["market", "TAM", "investor"],
       "audience": "investors",
-      "project": "datafund",
+      "project": "my-project",
       "created": "2025-01-15"
     }
   ]

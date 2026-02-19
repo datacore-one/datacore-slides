@@ -74,10 +74,10 @@ Parse the inputText by `---` separators:
 Add slides to `presentations/_slides/index.json`:
 
 ```
-Indexing: presentations/datafund/2025-01-15-pitch.md
+Indexing: presentations/my-project/2025-01-15-pitch.md
 
 Extracted 12 slides:
-  1. Title Slide - [title, datafund]
+  1. Title Slide - [title, my-project]
   2. Problem Statement - [problem, data-ownership, privacy]
   3. Market Opportunity - [market, TAM, investor]
   ...

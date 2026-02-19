@@ -1,8 +1,8 @@
-# Datafund Presentation Template
-# Based on Datafund Brand Guidelines 0.1b
+# Organization Presentation Template
+# Based on Organization Brand Guidelines 0.1b
 
-name: datafund
-description: Ultra-minimal style with soft gradient orbs for Datafund presentations
+name: organization
+description: Ultra-minimal style with soft gradient orbs for organization presentations
 
 # Brand Colors
 colors:
@@ -59,12 +59,12 @@ forbidden:
 
 # Logo
 logo:
-  svg_path: "1-datafund/1-tracks/comms/brand/2 SVG/1_Datafund_Main_Logo_3.svg"
-  png_path: "1-datafund/1-tracks/comms/brand/guidelines/Datafund Logo/JPEG _ PNG/Datafund Logo on transparent.png"
+  svg_path: "1-teamspace/1-tracks/comms/brand/svg/main-logo.svg"
+  png_path: "1-teamspace/1-tracks/comms/brand/guidelines/Logo/JPEG _ PNG/Logo on transparent.png"
   placement: "bottom-right corner, 3% margin"
   height: 160   # pixels at 4K resolution
   width: 472    # auto-calculated from aspect ratio
-  symbol: "Phi (Φ) inside D shape + 'Datafund' text"
+  symbol: "Organization logo mark + text"
 
 # Midjourney Prompt Template
 midjourney_prompt: |
@@ -74,7 +74,7 @@ midjourney_prompt: |
   80% negative space,
   light white base,
   elegant refined tech aesthetic,
-  Datafund brand style,
+  Organization brand style,
   --ar 16:9 --v 6.1
 
 # Gemini Style Prompt
@@ -83,7 +83,7 @@ gemini_style_prompt: |
   SOFT, MUTED, PALE colors only - no intense or saturated colors.
   Massive negative space. Elegant and refined.
 
-  DATAFUND BRAND REQUIREMENTS:
+  ORGANIZATION BRAND REQUIREMENTS:
   - Colors: SOFT and MUTED only - pale blue, light gray, soft orange/peach
   - NO intense or saturated colors - everything gentle and refined
   - Bullet points and accents in PALE, SOFT tones that blend with background
@@ -94,7 +94,7 @@ gemini_style_prompt: |
 
 # Reference
 reference_presentations:
-  primary: "1-datafund/1-tracks/comms/presentations/sakal-proposal/slides-v19/all-slides.pdf"
+  primary: "1-teamspace/1-tracks/comms/presentations/proposal/slides-v19/all-slides.pdf"
   style_note: "Sakal v19 produces rich, icon-heavy, elegant results"
-  legacy: "1-datafund/1-tracks/comms/presentations/agent-economy-roadmap/Agent-Economy-Roadmap-v5.pdf"
-reference_style: "undavos-keynote-v10 slide 19 - soft gradient orbs, fine lines, massive negative space"
+  legacy: "1-teamspace/1-tracks/comms/presentations/agent-economy-roadmap/Agent-Economy-Roadmap-v5.pdf"
+reference_style: "keynote-v10 slide 19 - soft gradient orbs, fine lines, massive negative space"

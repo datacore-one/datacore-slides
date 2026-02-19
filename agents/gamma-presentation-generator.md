@@ -64,7 +64,7 @@ Create presentations using Gamma.app by:
   "task_headline": "Create investor pitch for Acme meeting",
   "task_details": "Meeting: 2025-01-20\nAudience: Acme Corp leadership\nContext: Follow-up from intro call\nInclude: Market opportunity, product demo, team",
   "priority": "A",
-  "category": "Datafund",
+  "category": "Organization",
   "effort_estimate": "1:00",
   "context": "Q1 fundraising"
 }
@@ -86,7 +86,7 @@ Extract from task:
 Parsing presentation task...
 - Purpose: Investor pitch
 - Audience: Acme Corp leadership
-- Project: Datafund
+- Project: Organization
 - Context: Follow-up from intro call
 - Include: Market opportunity, product demo, team
 ```
@@ -106,12 +106,12 @@ Search for slides matching:
 Searching slide library...
 Found 4 relevant slides:
 
-From "Datafund Investor Pitch 2024-12":
+From "Organization Investor Pitch 2024-12":
   - Slide 3: Market Opportunity ($50B TAM)
   - Slide 5: Competitive Landscape
   - Slide 8: Team Introduction
 
-From "Partner Intro - Swarm":
+From "Partner Intro - Infrastructure Foundation":
   - Slide 4: Technical Architecture
 ```
 
@@ -152,7 +152,7 @@ Build the inputText for Gamma API:
 **InputText Format:**
 ```
 [Title]
-Investor Pitch: Datafund for Acme Corp
+Investor Pitch: Organization for Acme Corp
 ---
 [Problem Statement]
 Data ownership is broken. Users generate data but don't control it.
@@ -162,7 +162,7 @@ Enterprises face increasing regulatory pressure.
 [Content from indexed slide or generated]
 ---
 [Solution]
-Datafund provides privacy-first data infrastructure...
+Organization provides privacy-first data infrastructure...
 ---
 [Continue for all slides]
 ```
@@ -217,8 +217,8 @@ type: presentation
 title: Investor Pitch - Acme Corp Meeting
 gamma_id: [from response]
 gamma_url: [from response]
-pdf_url: exports/datafund/2025-01-15-acme-pitch.pdf
-project: datafund
+pdf_url: exports/my-project/2025-01-15-acme-pitch.pdf
+project: my-project
 audience: investors
 purpose: investor-pitch
 template: investor-pitch
@@ -285,10 +285,10 @@ For each NEW slide (not reused), add to slide index:
 ```json
 {
   "status": "completed",
-  "output_path": "presentations/datafund/2025-01-15-acme-pitch.md",
+  "output_path": "presentations/my-project/2025-01-15-acme-pitch.md",
   "summary": "Created 12-slide investor pitch for Acme Corp meeting. Reused 3 slides from library. PDF exported.",
   "gamma_url": "https://gamma.app/docs/...",
-  "pdf_path": "exports/datafund/2025-01-15-acme-pitch.pdf",
+  "pdf_path": "exports/my-project/2025-01-15-acme-pitch.pdf",
   "slides_created": 9,
   "slides_reused": 3,
   "review_notes": "Review slides 4-6 (product demo) for accuracy. Consider updating team slide with latest headcount."
@@ -299,7 +299,7 @@ For each NEW slide (not reused), add to slide index:
 ```json
 {
   "status": "needs_review",
-  "output_path": "presentations/datafund/2025-01-15-acme-pitch.md",
+  "output_path": "presentations/my-project/2025-01-15-acme-pitch.md",
   "summary": "Draft investor pitch created. Multiple valid approaches to financial slides.",
   "review_questions": [
     "Include specific revenue projections or keep high-level?",
@@ -363,13 +363,13 @@ Bullet lists → Slide content
 ```json
 {
   "id": "slide-[uuid]",
-  "source_presentation": "datafund/2025-01-15-acme-pitch.md",
+  "source_presentation": "my-project/2025-01-15-acme-pitch.md",
   "slide_number": 3,
   "title": "Market Opportunity",
   "content": "[inputText section]",
   "tags": ["market", "TAM", "opportunity", "investor"],
   "audience": "investors",
-  "project": "datafund",
+  "project": "my-project",
   "created": "2025-01-15"
 }
 ```
