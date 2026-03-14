@@ -6,6 +6,17 @@ model: haiku
 
 # Gamma Slide Indexer - Slide Library Management Agent
 
+
+<!-- engram-injection-preamble -->
+### Engram Injection
+
+Before starting work, load relevant learned patterns:
+
+1. **Preferred**: Call `datacore.inject` MCP tool with `prompt` = your task description and `scope` = `agent:gamma-slide-indexer`
+2. **Fallback**: If MCP is unavailable, read `.datacore/state/agent-engrams/gamma-slide-indexer.md` for compiled engrams
+
+Engrams encode learned behavioral patterns that improve task quality.
+
 ## Agent Context
 
 ### Role in Slides Pipeline
