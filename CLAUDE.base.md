@@ -1,258 +1,91 @@
-# slides Module Instructions
-
-This file provides guidance for AI agents working with the slides module.
-
-## Overview
-
-The slides module provides visual content generation:
-
-**Gamma.app Integration:**
-- **Create** - Generate presentations from prompts or existing content
-- **Reuse** - Build on previous slides via indexed slide library
-- **Export** - Download PDF/PPTX for sharing
-
-**Nano Banana (Gemini Image Generation):**
-- **Generate images** - Create any image from text prompts
-- **Slide backgrounds** - Generate continuous panoramic backgrounds
-- **Profile pictures** - Bot avatars, logos, icons
-- **Presentation slides** - Full slide images with content
-
-## Architecture
-
-**MCP Server** (`mcp-server/`) provides tools:
-- `gamma_create_presentation` - Create new presentations
-- `gamma_list_themes` - List available themes
-- `gamma_list_folders` - List workspace folders
-- `gamma_get_file_urls` - Get export download URLs
-
-**Agents** automate workflows:
-- `gamma-presentation-generator` - Main creation agent
-- `gamma-slide-indexer` - Index slides for reuse
-
-**Commands** for interactive use:
-- `/create-presentation` - Smart creation wizard
-- `/index-presentation` - Index existing deck
-- `/sync-gamma` - Pull from Gamma
-
-## Storage Structure
-
-Presentations organized by project/space:
-
-```
-[space]/
-├── presentations/                # Presentation library
-│   ├── _slides/                 # Indexed slide sections
-│   │   └── index.json           # Searchable slide index
-│   ├── my-project/                # Project: Example
-│   │   └── 2025-01-investor-pitch.md
-│   └── project-x/               # Project: X
-│       └── 2025-01-demo.md
-└── exports/                      # Downloaded files
-    └── my-project/
-        └── 2025-01-investor-pitch.pdf
-```
-
-## Presentation Metadata
-
-Each presentation stored as markdown with frontmatter:
-
-```markdown
 ---
-type: presentation
-title: Organization Investor Pitch Q1 2025
-gamma_id: abc123
-gamma_url: https://gamma.app/docs/...
-pdf_url: exports/my-project/2025-01-investor-pitch.pdf
-project: my-project
-audience: investors
-template: investor-pitch
-created: 2025-01-15
-slides_indexed: true
+summary: "Visual content generation — Gamma.app presentations, Nano Banana (Gemini) slide images, and iterative quality refinement."
+triggers: ["create presentation", "create slides", "index presentation", "sync gamma", "nano banana", "generate slide images"]
+context: on_match
 ---
 
-# Organization Investor Pitch Q1 2025
+# Slides Module
 
-**View**: [Gamma URL]
-**Download**: [PDF]
+## Purpose
 
-## Source InputText
+Visual content generation with two complementary tools: Gamma.app for structured presentations (API-driven creation, slide reuse, export) and Nano Banana for Gemini-powered slide image generation with brand templates. Includes a reusable slide library and iterative quality workflow.
 
-[Full inputText stored here for reuse/modification]
+## Quick Start
 
-## Slides
+> Say "create presentation" for the smart creation wizard, or "generate slide images" for Nano Banana image-based decks.
 
-1. Title slide
-2. Problem statement
-3. Market opportunity (indexed)
-...
-```
+## How It Works
 
-## Slide Index
+### Gamma.app Presentations
 
-Slides indexed for reuse in `presentations/_slides/index.json`:
+1. **Purpose & Context** — audience, project, meeting type
+2. **Template Selection** — investor-pitch, partner-intro, product-demo, or blank
+3. **Slide Suggestions** — search index for reusable existing slides
+4. **Generate** — call Gamma API, auto-export PDF, index new slides
 
-```json
-{
-  "slides": [
-    {
-      "id": "slide-001",
-      "source_presentation": "my-project/2025-01-investor-pitch.md",
-      "slide_number": 3,
-      "title": "Market Opportunity",
-      "content": "[inputText section]",
-      "tags": ["market", "TAM", "investor"],
-      "audience": "investors",
-      "project": "my-project",
-      "created": "2025-01-15"
-    }
-  ]
-}
-```
+MCP Server provides: `gamma_create_presentation`, `gamma_list_themes`, `gamma_list_folders`, `gamma_get_file_urls`.
 
-## Smart Creation Workflow
+### Nano Banana (Gemini Image Slides)
 
-When creating presentations, the workflow is:
+Full-image slide decks generated from markdown with `---` separators.
 
-1. **Purpose & Context** - Ask about meeting type, audience, project
-2. **Template Selection** - Choose from investor-pitch, partner-intro, product-demo, or blank
-3. **Slide Suggestions** - Search slide index for relevant existing slides
-4. **Custom Content** - Add occasion-specific content
-5. **Generate** - Combine and call Gamma API
-6. **Index** - Add new slides to library
+**Workflow:**
+1. Write deck markdown with design notes per slide
+2. Generate: `nano-banana-slides.py deck.md --output-dir slides/ --resolution 4k --reference style.pdf`
+3. Add logos and compile: `nano-banana-slides.py --rebuild-pdf slides/ --add-logo logo.svg`
+4. Iterate single slides as needed, rebuild PDF
 
-## Content Transformation
+**Critical patterns:**
+- Never edit text in generated images — always regenerate
+- Use `--add-logo` for post-processing (not `--logo` flag)
+- Add "TEXT FIDELITY — CRITICAL" to design notes (Gemini paraphrases)
+- Add "YEAR IS XXXX — DO NOT CHANGE" to prevent date hallucination
+- Portrait mode: `--portrait` flag (3508x4961, 300 DPI A4)
 
-### Blog Post to Presentation
-```
-Title → presentation title
-H2 headings → slide breaks (use --- separator)
-Introduction → opening card
-Conclusion → closing card
-```
+### Ralph Loop (High-Stakes Documents)
 
-### Outline to Presentation
-```
-Use textMode: preserve and cardSplit: inputTextBreaks
-Each numbered item → card
-```
+For external-facing documents, use three evaluator personas over 3-5 iterations:
 
-### Existing Slides to Presentation
-```
-Retrieve from _slides/index.json
-Concatenate with --- separators
-```
+| Evaluator | Catches |
+|-----------|---------|
+| A — Audience Persona | Narrative clarity, proposition strength |
+| B — Design Director | Visual hierarchy, generic AI aesthetic |
+| C — Copy Editor | Text bugs, Gemini rewrites, jargon |
 
-## Task Tags
+Template: `templates/ralph-nano-banana.md`
 
-| Tag | Agent | Action |
-|-----|-------|--------|
-| `:AI:presentation:` | gamma-presentation-generator | Create presentation |
-| `:AI:presentation:index:` | gamma-slide-indexer | Index slides for reuse |
+## Agents & Commands
 
-## Nano Banana (Gemini Image Generation)
+| Name | Type | When to use |
+|------|------|-------------|
+| `gamma-presentation-generator` | agent | Create presentations via Gamma API |
+| `gamma-slide-indexer` | agent | Index slides for reuse |
+| `presentation-generator` | agent | Gemini image-based presentations |
+| `/create-presentation` | skill | Smart creation wizard |
+| `/index-presentation` | skill | Index existing deck |
+| `/sync-gamma` | skill | Pull presentations from Gamma |
 
-Generate images using Google's Gemini models. Requires `GEMINI_API_KEY`.
+## Key Paths
 
-**Available models:**
-- `gemini-2.5-flash-image` - Fast, good quality (recommended)
-- `gemini-2.5-flash-image-preview` - Preview version
-- `gemini-3-pro-image-preview` - Highest quality, slower
+| Path | Purpose |
+|------|---------|
+| `[space]/presentations/` | Presentation metadata + source |
+| `[space]/presentations/_slides/index.json` | Searchable slide library |
+| `[space]/exports/` | Downloaded PDF/PPTX files |
+| `templates/` | investor-pitch, partner-intro, product-demo, ralph-nano-banana |
 
-**Scripts:**
-- `scripts/nano-banana-slides.py` - Generate full presentation slides from markdown
-- `scripts/nano-banana-backgrounds.py` - Generate tiling panoramic backgrounds
+## Setup
 
-**Quick image generation (inline):**
-```python
-import google.generativeai as genai
-from PIL import Image
-from io import BytesIO
+Env vars in `.datacore/env/.env`:
+- `GAMMA_API_KEY` — required for Gamma.app
+- `GEMINI_API_KEY` — required for Nano Banana
 
-genai.configure(api_key=os.environ['GEMINI_API_KEY'])
-model = genai.GenerativeModel('gemini-2.5-flash-image')
+## Boundaries
 
-response = model.generate_content(
-    contents=["Your prompt here"],
-    generation_config={"response_modalities": ["IMAGE"]}
-)
+- Gamma API has no edit endpoint — store inputText and recreate with modifications.
+- Export URLs expire — download immediately after generation.
+- Cannot pull slides from web-created Gamma decks (API-created only).
 
-for part in response.parts:
-    if hasattr(part, 'inline_data'):
-        image = Image.open(BytesIO(part.inline_data.data))
-        image.save('output.png')
-```
+---
 
-**Use cases:**
-- Profile pictures / avatars
-- Presentation slide images
-- Blog post hero images
-- Social media graphics
-- Icons and logos
-
-### Nano Banana Iteration Workflow
-
-Proven workflow for high-quality slide decks:
-
-1. **Write deck markdown** with `---` separators between slides
-2. **Generate all slides**: `nano-banana-slides.py deck.md --output-dir slides/ --resolution 4k --reference style.pdf`
-3. **Add logos and compile**: `nano-banana-slides.py --rebuild-pdf slides/ --add-logo logo.svg --pdf-name my-deck`
-4. **Iterate single slides**: write temp markdown → generate to temp dir → copy PNG to slides dir → rebuild PDF
-5. **Design notes in markdown**: append "Design notes: ..." to guide Gemini on icons, diagrams, layout
-6. **Never use `--logo` flag** (unreliable Gemini baked-in logos) — always use `--add-logo` for post-processing
-
-**Important patterns:**
-- Never programmatically edit text in generated images (font mismatch) — always regenerate
-- Use a single good slide as `--reference` PDF for style consistency across the deck
-- Sakal v19 reference produces rich, icon-heavy, elegant results
-
-## Environment Variables
-
-Located in `.datacore/env/.env`:
-
-```bash
-GAMMA_API_KEY=sk-gamma-xxxxxxxxxxxxxxxx
-GAMMA_DEFAULT_THEME=              # Optional
-GAMMA_DEFAULT_FOLDER=             # Optional
-GEMINI_API_KEY=AIza...            # For Nano Banana image generation
-```
-
-## MCP Server Setup
-
-Add to Claude Code MCP config:
-
-```json
-{
-  "mcpServers": {
-    "gamma": {
-      "command": "node",
-      "args": ["/path/to/.datacore/modules/gamma/mcp-server/dist/index.js"],
-      "env": {
-        "GAMMA_API_KEY": "sk-gamma-xxxxxxxx"
-      }
-    }
-  }
-}
-```
-
-## API Limitations
-
-| Limitation | Workaround |
-|------------|------------|
-| No edit API | Store inputText, recreate with modifications |
-| Can't pull slides from web-created decks | Index slides from API-created presentations only |
-| Export URLs expire | Download immediately after generation |
-
-## Templates
-
-Templates provide structure for common presentation types:
-
-- `templates/investor-pitch.md` - 15 slides: problem, solution, traction, team, ask
-- `templates/partner-intro.md` - 10 slides: who we are, what we do, collaboration
-- `templates/product-demo.md` - 12 slides: problem, demo, benefits, CTA
-
-## Knowledge Feedback
-
-After presentation creation:
-1. Index slides to `_slides/index.json`
-2. Store full inputText in presentation metadata
-3. Export PDF to `exports/` for archival
+*This file covers structure, capability, and stable configuration. Learned behavior, user corrections, and operational preferences live as engrams — call `datacore.recall` for those.*
