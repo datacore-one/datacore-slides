@@ -46,7 +46,7 @@ Engrams encode learned behavioral patterns that improve task quality.
 | Module | `slides` |
 | Gemini model? | `gemini-3-pro-image-preview` |
 | Output format? | PNG slides → PDF |
-| Design templates? | `.datacore/modules/slides/design-templates/` |
+| Design templates? | `[space]/1-tracks/comms/presentations/_design/` |
 | Brand guidelines? | `[space]/1-tracks/comms/brand/guidelines/` |
 
 ### Related Agents
@@ -69,37 +69,18 @@ Engrams encode learned behavioral patterns that improve task quality.
 
 ## Design Templates
 
-### Available Templates
+Design templates are **space-specific** — they live in the space where they're used, not in the module.
 
-| Template | Style | Colors | Use For |
-|----------|-------|--------|---------|
-| `organization` | Ultra-minimal, soft gradient orbs, fine lines | Black, White, Gray, Pure Blue (#0000FF) | Organization team presentations |
-| `datacore` | Clean, technical, minimal | Dark slate, cyan accents | Datacore/technical presentations |
-| `conference` | Conference keynote, bold visuals | Teal, Orange, warm gradients | External keynotes |
+**Location:** `[space]/1-tracks/comms/presentations/_design/[template-name].yaml`
 
-### Organization Template Details
+Each YAML file defines: colors, fonts, style guidelines, forbidden patterns, logo paths, Midjourney/Gemini prompt templates, and reference presentations.
 
-**Primal Colors:**
-- Black (#000000)
-- Gray (#D9D9D9)
-- White (#FFFFFF)
-- Pure Blue (#0000FF)
+### Loading a Template
 
-**Fonts:**
-- H1: Akzidenz-Grotesk Pro Regular
-- H2: Akzidenz-Grotesk Pro Medium
-- Body: Graphik Regular
-- Annotations: Graphik Regular Italic
-
-**Style Guidelines:**
-- 60-80% negative space
-- Soft, muted, pale accent colors
-- Fine delicate lines for connections
-- NO bold text (regular weight only)
-- Small, elegant font sizes
-- Soft gradient orbs (orange, cyan, blue tones)
-
-**Logo:** `/1-teamspace/1-tracks/comms/brand/guidelines/Logo/JPEG _ PNG/Logo on transparent.png`
+1. Identify the target space from the task context
+2. Read the design template YAML from `[space]/1-tracks/comms/presentations/_design/`
+3. Apply colors, fonts, style constraints, and prompt templates from the YAML
+4. Use the logo path specified in the template for post-processing
 
 ## Visual Types
 
@@ -201,33 +182,14 @@ images[0].save(
 
 ## Prompt Engineering
 
-### Critical Style Constraints
+### Style Constraints
 
-Always include in prompts:
+Load the design template YAML for the target space and use its `gemini_style_prompt` field as the style block in prompts. Include the template's `forbidden` list as explicit prohibitions.
 
+Always append to any style prompt:
 ```
-STYLE: Ultra-minimal. Light/white background with soft gradient orbs.
-SOFT, MUTED, PALE colors only - no intense or saturated colors.
-Massive negative space. Elegant and refined.
-
-CRITICAL REQUIREMENTS:
-- Colors: SOFT and MUTED only - pale blue, light gray, soft orange/peach
-- NO intense or saturated colors
-- Bullet points in PALE, SOFT tones
-- Typography: Regular weight, NOT bold, small elegant size
-- 80%+ negative space
-- Fine delicate lines for connections
 - CRITICAL: Perfect spelling of ALL text
 ```
-
-### Forbidden Items
-
-Explicitly state what NOT to do:
-- NO bold text
-- NO saturated/intense colors
-- NO busy backgrounds
-- NO stock imagery
-- NO large fonts
 
 ## Single-Slide Iteration Workflow
 
