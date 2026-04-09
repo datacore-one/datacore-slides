@@ -1,3 +1,4 @@
+manifest_version: 2
 name: slides
 version: 1.0.0
 description: Visual content generation - presentations (Gamma.app) with AI-powered backgrounds
@@ -82,3 +83,12 @@ hooks:
     echo ""
     echo "Note: This module uses image-generation module for Gemini backgrounds."
     echo "Install image-generation module for full image generation capabilities."
+
+# DIP-0022 context
+context:
+  priority: on_match
+
+# Engrams
+engrams:
+  namespace: slides
+  scopes: [slides]

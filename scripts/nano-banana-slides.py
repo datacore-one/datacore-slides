@@ -189,14 +189,29 @@ def get_slide_type_instructions(slide_type: str) -> str:
 - Clean visual hierarchy"""
 
 
-def generate_slide_image(slide: dict, model, total_slides: int = 7, reference_images: list = None, logo_image = None) -> bytes:
+def generate_slide_image(slide: dict, model, total_slides: int = 7, reference_images: list = None, logo_image = None, portrait: bool = False) -> bytes:
     """Generate a slide image using Gemini API."""
 
     slide_type = slide.get('type', 'standard')
     slide_type_instructions = get_slide_type_instructions(slide_type)
 
     # System style description (consistent across all slides)
-    system_style = """Generate a WIDE presentation slide image. CRITICAL: Output must be 16:9 LANDSCAPE aspect ratio (width much greater than height, like 1920x1080 or 1456x816). NOT square. NOT portrait.
+    if portrait:
+        orientation_instruction = """ASPECT RATIO CRITICAL: Output image must be taller than wide — portrait orientation (height:width ratio approximately 1.41:1, like 768x1087 or 864x1232). NOT landscape. NOT square. This is a printed document page, NOT a presentation slide. Do NOT add any format labels, watermarks, orientation text, or instruction text as visible content on the image.
+
+PORTRAIT DOCUMENT COLOR RULES (override system color defaults):
+- Section headings / section labels: dark charcoal #2a2a2a — small uppercase, letter-spaced
+- Body text: dark charcoal #2a2a2a
+- Title: dark charcoal #1a1a1a
+- Background: soft and airy — gentle pastel gradient orbs in corners (pale blue, soft peach, light lavender), mostly white in the center so text is fully readable. Subtle, not busy.
+- Accent lines (hairlines, rules): light gray #d0d0d0
+- Follow the slide's design notes for any color overrides"""
+        layout_instruction = "Portrait document format (taller than wide). Full-page document layout — use the full height. Content flows top to bottom. No format labels or watermarks on the image."
+    else:
+        orientation_instruction = """Generate a WIDE presentation slide image. CRITICAL: Output must be 16:9 LANDSCAPE aspect ratio (width much greater than height, like 1920x1080 or 1456x816). NOT square. NOT portrait."""
+        layout_instruction = "WIDE 16:9 landscape format (NOT square)\n- Generous margins (100px+)\n- Content left-aligned\n- Simple diagram or icon on right if needed\n- Fine delicate lines for any connections\n- 80%+ empty space"
+
+    system_style = f"""{orientation_instruction}
 
 BRAND: Organization - data tokenization company.
 
@@ -234,12 +249,7 @@ BACKGROUND STYLE - "Soft Gradient Orbs":
 - Creates refined, calming, premium atmosphere
 
 LAYOUT:
-- WIDE 16:9 landscape format (NOT square)
-- Generous margins (100px+)
-- Content left-aligned
-- Simple diagram or icon on right if needed
-- Fine delicate lines for any connections
-- 80%+ empty space
+- {layout_instruction}
 
 VISUAL STYLE:
 - Fine, delicate line work
@@ -334,12 +344,36 @@ def get_resolution(resolution: str) -> tuple:
     resolutions = {
         '1080p': (1920, 1080),
         '4k': (3840, 2160),
+        '8k': (7680, 4320),
+        'portrait-a4': (2160, 3054),   # A4 portrait at ~4K height (ratio 1:1.414)
+        'portrait-hq': (3508, 4961),   # A4 portrait at 300 DPI (true print quality)
     }
     return resolutions.get(resolution, (3840, 2160))
 
 
-def save_image(image_data: bytes, output_path: str, target_size: tuple = (3840, 2160)) -> tuple:
+def detect_canvas_bg(image: "Image") -> tuple:
+    """Detect canvas background color by averaging the four corners of the image."""
+    img = image.convert('RGB')
+    w, h = img.size
+    sample = 10
+    corners = [
+        img.crop((0, 0, sample, sample)),
+        img.crop((w - sample, 0, w, sample)),
+        img.crop((0, h - sample, sample, h)),
+        img.crop((w - sample, h - sample, w, h)),
+    ]
+    pixels = []
+    for corner in corners:
+        pixels.extend(list(corner.getdata()))
+    avg_r = sum(p[0] for p in pixels) // len(pixels)
+    avg_g = sum(p[1] for p in pixels) // len(pixels)
+    avg_b = sum(p[2] for p in pixels) // len(pixels)
+    return (avg_r, avg_g, avg_b)
+
+
+def save_image(image_data: bytes, output_path: str, target_size: tuple = (3840, 2160), canvas_bg: tuple = None) -> tuple:
     """Save image data to file, fitting into target dimensions with padding.
+    canvas_bg: RGB tuple for padding. If None, auto-detected from image corners.
     Returns (success, original_size) tuple."""
     try:
         # Decode image
@@ -374,8 +408,13 @@ def save_image(image_data: bytes, output_path: str, target_size: tuple = (3840, 
 
         image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
-        # Create white background canvas at target size
-        canvas = Image.new('RGB', target_size, (255, 255, 255))
+        # Auto-detect canvas background from image corners if not specified
+        if canvas_bg is None:
+            canvas_bg = detect_canvas_bg(image)
+            print(f"  Canvas bg: auto-detected {canvas_bg}")
+
+        # Create background canvas at target size
+        canvas = Image.new('RGB', target_size, canvas_bg)
 
         # Center the image on canvas
         x_offset = (target_width - new_width) // 2
@@ -514,9 +553,9 @@ def main():
                         help='Output directory for images')
     parser.add_argument('--test', '-t', type=int, default=0,
                         help='Only generate first N slides for testing')
-    parser.add_argument('--model', '-m', default='gemini-3-pro-image-preview',
-                        choices=['gemini-2.5-flash-image', 'gemini-2.5-flash-image-preview', 'gemini-3-pro-image-preview'],
-                        help='Gemini model to use for image generation (Pro recommended for quality)')
+    parser.add_argument('--model', '-m', default='gemini-3.1-flash-image-preview',
+                        choices=['gemini-2.5-flash-image', 'gemini-2.5-flash-image-preview', 'gemini-3-pro-image-preview', 'gemini-3.1-flash-image-preview'],
+                        help='Gemini model to use (default: gemini-3.1-flash-image-preview = Nano Banana 2)')
     parser.add_argument('--reference', '-r', default=None,
                         help='Path to reference PDF for style matching')
     parser.add_argument('--logo', '-l', default=None,
@@ -529,8 +568,10 @@ def main():
     parser.add_argument('--logo-height', type=int, default=160,
                         help='Logo height in pixels for --add-logo (default: 160, good for 4K)')
     parser.add_argument('--resolution', default='4k',
-                        choices=['1080p', '4k'],
-                        help='Output resolution (default: 4k for highest quality)')
+                        choices=['1080p', '4k', '8k', 'portrait-a4', 'portrait-hq'],
+                        help='Output resolution (default: 4k for highest quality). Use portrait-a4 or portrait-hq for A4 portrait one-pagers.')
+    parser.add_argument('--portrait', action='store_true',
+                        help='Generate in portrait orientation (A4 format). Automatically sets resolution to portrait-a4.')
     parser.add_argument('--pdf-name', '-p', default=None,
                         help='PDF filename (without extension). Defaults to markdown filename.')
     parser.add_argument('--rebuild-pdf', default=None, metavar='SLIDES_DIR',
@@ -570,9 +611,16 @@ def main():
         print(f"Loading logo for Gemini reference: {args.logo}")
         logo_image = load_logo_image(args.logo)
 
+    # Portrait mode: auto-set resolution
+    portrait_mode = args.portrait or args.resolution in ('portrait-a4', 'portrait-hq')
+    if portrait_mode and args.resolution == '4k':
+        args.resolution = 'portrait-hq'
+
     # Get target resolution
     target_resolution = get_resolution(args.resolution)
     print(f"Target resolution: {target_resolution[0]}x{target_resolution[1]} ({args.resolution})")
+    if portrait_mode:
+        print("Portrait mode: ON (A4 format)")
 
     # Parse markdown
     print(f"Parsing: {args.markdown_file}")
@@ -608,7 +656,17 @@ def main():
     for slide in slides:
         print(f"Generating slide {slide['number']}: {slide['title'][:50]}...")
 
-        image_data = generate_slide_image(slide, model, total_slides, reference_images, logo_image)
+        image_data = generate_slide_image(slide, model, total_slides, reference_images, logo_image, portrait=portrait_mode)
+
+        # Auto-retry if portrait mode but Gemini generated landscape
+        if image_data and portrait_mode:
+            from io import BytesIO as _BytesIO
+            from PIL import Image as _Image
+            _chk = _Image.open(_BytesIO(image_data))
+            _w, _h = _chk.size
+            if _w > _h:
+                print(f"  Wrong orientation ({_w}x{_h} is landscape) — retrying for portrait...")
+                image_data = generate_slide_image(slide, model, total_slides, reference_images, logo_image, portrait=portrait_mode)
 
         if image_data:
             # Create safe filename
@@ -616,6 +674,7 @@ def main():
             filename = f"slide-{slide['number']:02d}-{safe_title}.png"
             output_path = output_dir / filename
 
+            # Auto-detect canvas background from image corners (handles both dark and light slides)
             success, orig_size = save_image(image_data, str(output_path), target_resolution)
             if success:
                 image_paths.append(str(output_path))
