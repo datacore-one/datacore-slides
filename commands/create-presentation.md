@@ -1,3 +1,14 @@
+---
+name: create-presentation
+description: create-presentation command
+recall:
+  # DIP-0029 default — engrams scoped to this command + tag-matched.
+  scopes:
+    - command:create-presentation
+  tags:
+    - create-presentation
+---
+
 # /create-presentation
 
 ## Command Context

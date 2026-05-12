@@ -1,3 +1,14 @@
+---
+name: sync-gamma
+description: sync-gamma command
+recall:
+  # DIP-0029 default — engrams scoped to this command + tag-matched.
+  scopes:
+    - command:sync-gamma
+  tags:
+    - sync-gamma
+---
+
 # /sync-gamma
 
 ## Command Context

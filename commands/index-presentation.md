@@ -1,3 +1,14 @@
+---
+name: index-presentation
+description: index-presentation command
+recall:
+  # DIP-0029 default — engrams scoped to this command + tag-matched.
+  scopes:
+    - command:index-presentation
+  tags:
+    - index-presentation
+---
+
 # /index-presentation
 
 ## Command Context
