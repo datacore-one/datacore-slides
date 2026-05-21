@@ -67,16 +67,21 @@ def detect_slide_type(slide_content: str) -> str:
         return 'standard'
 
 
-def parse_markdown_slides(markdown_path: str) -> list[dict]:
-    """Parse markdown file into slide content."""
+def parse_markdown_slides(markdown_path: str) -> tuple[list[dict], dict]:
+    """Parse markdown file into slide content. Returns (slides, frontmatter_dict)."""
     with open(markdown_path, 'r') as f:
         content = f.read()
 
-    # Remove frontmatter if present
+    # Parse frontmatter if present
+    frontmatter = {}
     if content.startswith('---'):
         parts = content.split('---', 2)
         if len(parts) >= 3:
+            fm_text = parts[1]
             content = parts[2]
+            # Lightweight YAML parse — handles scalars and `key: |` block scalars.
+            # Avoids a hard dependency on PyYAML for this single-purpose use.
+            frontmatter = _parse_simple_yaml(fm_text)
 
     # Split by slide separators (---)
     raw_slides = re.split(r'\n---\n', content)
@@ -119,7 +124,57 @@ def parse_markdown_slides(markdown_path: str) -> list[dict]:
             'type': slide_type
         })
 
-    return slides
+    return slides, frontmatter
+
+
+def _parse_simple_yaml(text: str) -> dict:
+    """Minimal YAML-ish parser that handles top-level scalars and `key: |` block scalars.
+
+    Sufficient for reading the `design_system:` and per-slide overrides we use in deck
+    frontmatter without pulling in PyYAML. Not a general YAML parser — does NOT handle
+    nested dicts, sequences, anchors, multi-line scalars without the `|` indicator, etc.
+    """
+    result: dict = {}
+    lines = text.split('\n')
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        if not stripped or stripped.startswith('#'):
+            i += 1
+            continue
+        m = re.match(r'^(\w[\w-]*)\s*:\s*(.*)$', line)
+        if not m:
+            i += 1
+            continue
+        key, value = m.group(1), m.group(2)
+        if value.strip() == '|' or value.strip() == '|-' or value.strip() == '>':
+            # Block scalar — collect indented lines until indent drops back
+            i += 1
+            block_lines = []
+            base_indent = None
+            while i < len(lines):
+                bl = lines[i]
+                if not bl.strip():
+                    block_lines.append('')
+                    i += 1
+                    continue
+                indent = len(bl) - len(bl.lstrip())
+                if base_indent is None:
+                    base_indent = indent
+                if indent < base_indent:
+                    break
+                block_lines.append(bl[base_indent:] if base_indent else bl)
+                i += 1
+            result[key] = '\n'.join(block_lines).rstrip()
+        else:
+            # Plain scalar (strip surrounding quotes)
+            v = value.strip()
+            if (v.startswith('"') and v.endswith('"')) or (v.startswith("'") and v.endswith("'")):
+                v = v[1:-1]
+            result[key] = v
+            i += 1
+    return result
 
 
 def load_reference_images(reference_path: str, max_pages: int = 3) -> list:
@@ -189,8 +244,14 @@ def get_slide_type_instructions(slide_type: str) -> str:
 - Clean visual hierarchy"""
 
 
-def generate_slide_image(slide: dict, model, total_slides: int = 7, reference_images: list = None, logo_image = None, portrait: bool = False) -> bytes:
-    """Generate a slide image using Gemini API."""
+def generate_slide_image(slide: dict, model, total_slides: int = 7, reference_images: list = None, logo_image = None, portrait: bool = False, design_system_override: str = None) -> bytes:
+    """Generate a slide image using Gemini API.
+
+    If `design_system_override` is provided, it REPLACES the hardcoded brand/design
+    system block of the system prompt. This lets a deck declare its own design system
+    in the markdown frontmatter (`design_system: |\n...`) and have those rules apply
+    consistently across every slide — instead of fighting the renderer's defaults.
+    """
 
     slide_type = slide.get('type', 'standard')
     slide_type_instructions = get_slide_type_instructions(slide_type)
@@ -211,7 +272,18 @@ PORTRAIT DOCUMENT COLOR RULES (override system color defaults):
         orientation_instruction = """Generate a WIDE presentation slide image. CRITICAL: Output must be 16:9 LANDSCAPE aspect ratio (width much greater than height, like 1920x1080 or 1456x816). NOT square. NOT portrait."""
         layout_instruction = "WIDE 16:9 landscape format (NOT square)\n- Generous margins (100px+)\n- Content left-aligned\n- Simple diagram or icon on right if needed\n- Fine delicate lines for any connections\n- 80%+ empty space"
 
-    system_style = f"""{orientation_instruction}
+    if design_system_override:
+        # Custom design system from deck frontmatter REPLACES the hardcoded brand block.
+        # The orientation instruction (landscape vs portrait) is preserved because it is
+        # mechanical, not stylistic.
+        system_style = f"""{orientation_instruction}
+
+{design_system_override}
+
+LOGO: DO NOT draw any logo, brand mark, or icon. Leave bottom-right corner empty — logo added in post.
+"""
+    else:
+        system_style = f"""{orientation_instruction}
 
 BRAND: Organization - data tokenization company.
 
@@ -295,8 +367,7 @@ CRITICAL REQUIREMENTS:
 4. NO placeholder text or "Lorem ipsum"
 5. Render the ACTUAL content provided above
 6. If logo reference provided, use it EXACTLY - do not modify or recreate
-7. Make the slide VISUALLY ENGAGING - minimize text, maximize visual communication
-8. Include subtle Conway's Game of Life pattern in background"""
+7. Make the slide VISUALLY ENGAGING - minimize text, maximize visual communication"""
 
     prompt = f"{system_style}\n\n---\n\n{slide_prompt}"
 
@@ -624,9 +695,12 @@ def main():
 
     # Parse markdown
     print(f"Parsing: {args.markdown_file}")
-    slides = parse_markdown_slides(args.markdown_file)
+    slides, frontmatter = parse_markdown_slides(args.markdown_file)
     total_slides = len(slides)
     print(f"Found {total_slides} slides")
+    design_system_override = frontmatter.get('design_system')
+    if design_system_override:
+        print(f"Custom design_system from frontmatter: {len(design_system_override)} chars (replacing hardcoded brand block)")
 
     # Show slide types detected
     for s in slides:
@@ -656,7 +730,7 @@ def main():
     for slide in slides:
         print(f"Generating slide {slide['number']}: {slide['title'][:50]}...")
 
-        image_data = generate_slide_image(slide, model, total_slides, reference_images, logo_image, portrait=portrait_mode)
+        image_data = generate_slide_image(slide, model, total_slides, reference_images, logo_image, portrait=portrait_mode, design_system_override=design_system_override)
 
         # Auto-retry if portrait mode but Gemini generated landscape
         if image_data and portrait_mode:
@@ -666,7 +740,7 @@ def main():
             _w, _h = _chk.size
             if _w > _h:
                 print(f"  Wrong orientation ({_w}x{_h} is landscape) — retrying for portrait...")
-                image_data = generate_slide_image(slide, model, total_slides, reference_images, logo_image, portrait=portrait_mode)
+                image_data = generate_slide_image(slide, model, total_slides, reference_images, logo_image, portrait=portrait_mode, design_system_override=design_system_override)
 
         if image_data:
             # Create safe filename
