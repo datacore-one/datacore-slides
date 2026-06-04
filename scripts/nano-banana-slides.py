@@ -532,7 +532,8 @@ def create_pdf(image_paths: list[str], output_path: str, page_width: float = Non
     print(f"PDF created: {output_path} ({page_width:.0f}x{page_height:.0f} pt)")
 
 
-def add_logo_to_image(image_path: str, logo_path: str, logo_height: int = 160, margin_pct: float = 0.03):
+def add_logo_to_image(image_path: str, logo_path: str, logo_height: int = 160,
+                       margin_pct: float = 0.03, whitewash_corner: bool = True):
     """Overlay logo on an image in the bottom-right corner with transparency.
 
     Args:
@@ -540,6 +541,13 @@ def add_logo_to_image(image_path: str, logo_path: str, logo_height: int = 160, m
         logo_path: Path to logo file (SVG or PNG)
         logo_height: Logo height in pixels (width auto-calculated from aspect ratio)
         margin_pct: Margin as percentage of image dimensions (default 3%)
+        whitewash_corner: If True (default), erase the bottom-right corner with
+                          a white rectangle before placing the post-process logo.
+                          Prevents the "double logo" bug where Gemini renders
+                          its own approximation of the logo despite the prompt
+                          saying not to. Whitewash region is sized to the
+                          post-process logo + margin, so legitimate content
+                          outside that region is preserved.
     """
     # Load the slide image
     slide = Image.open(image_path).convert('RGBA')
@@ -568,6 +576,26 @@ def add_logo_to_image(image_path: str, logo_path: str, logo_height: int = 160, m
     logo_w, logo_h = logo.size
     x = slide_w - logo_w - margin_x
     y = slide_h - logo_h - margin_y
+
+    # OPTIONAL: whitewash the bottom-right region BEFORE placing logo.
+    # Solves the "Gemini drew its own logo too" double-logo problem.
+    # The whitewash region is 1.6x the logo width and 1.4x the logo height,
+    # centred on the logo position, with white fill matching slide background.
+    if whitewash_corner:
+        from PIL import ImageDraw as _Draw
+        # Sample the slide's background colour from a clean corner area
+        # (top-left, 50px in) so we match cream/white reliably
+        sample = slide.crop((50, 50, 60, 60))
+        bg_pixels = list(sample.getdata())
+        avg = tuple(sum(c) // len(bg_pixels) for c in zip(*bg_pixels))
+        # Whitewash region: expanded around the logo placement
+        wash_w = int(logo_w * 1.6)
+        wash_h = int(logo_h * 1.4)
+        wash_x = slide_w - wash_w - int(margin_x * 0.3)
+        wash_y = slide_h - wash_h - int(margin_y * 0.3)
+        d = _Draw.Draw(slide)
+        d.rectangle([(wash_x, wash_y), (wash_x + wash_w, wash_y + wash_h)],
+                    fill=avg + (255,) if len(avg) == 3 else avg)
 
     # Composite with alpha transparency
     slide.paste(logo, (x, y), logo)
@@ -624,9 +652,11 @@ def main():
                         help='Output directory for images')
     parser.add_argument('--test', '-t', type=int, default=0,
                         help='Only generate first N slides for testing')
-    parser.add_argument('--model', '-m', default='gemini-3.1-flash-image-preview',
+    parser.add_argument('--model', '-m', default='gemini-3-pro-image-preview',
                         choices=['gemini-2.5-flash-image', 'gemini-2.5-flash-image-preview', 'gemini-3-pro-image-preview', 'gemini-3.1-flash-image-preview'],
-                        help='Gemini model to use (default: gemini-3.1-flash-image-preview = Nano Banana 2)')
+                        help='Gemini model to use (default: gemini-3-pro-image-preview = Nano Banana Pro; '
+                             'Pro respects typography directives much better than Flash variants and is the '
+                             'right default for enterprise/banking decks. Use Flash for cheap iterations.)')
     parser.add_argument('--reference', '-r', default=None,
                         help='Path to reference PDF for style matching')
     parser.add_argument('--logo', '-l', default=None,
