@@ -24,6 +24,25 @@ V42_DIR.mkdir(parents=True, exist_ok=True)
 
 W, H = 1920, 1080  # 16:9, half-4K. Will scale to match v29 4K when needed.
 
+# ---- Typography (SYSTEM SETTING — applies to all slides) -------------------
+# Canonical sizes per user spec 2026-06-04:
+#   - Body text: 18pt
+#   - Slide titles: 36pt
+#   - Subtitles: 22pt (interpolated)
+#   - Cover title: 60pt (impact moment)
+#   - Dramatic pause ("One more thing"): 72pt
+# Scaled to W=1920 canvas. PIL works in pixels; we scale these by FONT_SCALE
+# below if needed for higher DPI output.
+
+FONT_SCALE = 1.0  # set >1 for higher-resolution renders
+TITLE_PT = int(36 * FONT_SCALE)
+SUBTITLE_PT = int(22 * FONT_SCALE)
+BODY_PT = int(18 * FONT_SCALE)
+COVER_TITLE_PT = int(60 * FONT_SCALE)
+PAUSE_TITLE_PT = int(72 * FONT_SCALE)
+FOOTER_PT = int(11 * FONT_SCALE)
+ACCENT_RULE_W = 4  # blue accent bar under title
+
 # ---- Palette (Lloyds aesthetic) --------------------------------------------
 
 WHITE = (255, 255, 255)
@@ -126,61 +145,62 @@ def blue_square(d, x, y, size=14):
 
 def render_slide(title, subtitle=None, bullets=None, body=None, closing=None,
                  slide_num=None):
-    """Render one Lloyds-aesthetic slide with title + subtitle + bullets/body."""
+    """Render one Lloyds-aesthetic slide with title + subtitle + bullets/body.
+    Typography per system setting: title 36pt, body 18pt."""
     img = make_background()
     d = ImageDraw.Draw(img)
 
     mx = 110
     y = 90
 
-    # Title
-    title_fnt = font(54)
+    # Title — 36pt system default
+    title_fnt = font(TITLE_PT)
     y = draw_text_wrap(d, title, mx, y, W - 2 * mx, title_fnt, CHARCOAL_DARK,
-                       line_h=66)
-    y += 10
+                       line_h=int(TITLE_PT * 1.25))
+    y += 12
 
     # Blue accent rule under title
-    d.rectangle([(mx, y), (mx + 80, y + 6)], fill=BLUE)
-    y += 30
+    d.rectangle([(mx, y), (mx + 60, y + ACCENT_RULE_W)], fill=BLUE)
+    y += 26
 
-    # Subtitle
+    # Subtitle — 22pt
     if subtitle:
-        sub_fnt = font(28)
+        sub_fnt = font(SUBTITLE_PT)
         y = draw_text_wrap(d, subtitle, mx, y, W - 2 * mx, sub_fnt, CHARCOAL_MID,
-                           line_h=38)
-        y += 30
+                           line_h=int(SUBTITLE_PT * 1.35))
+        y += 24
 
-    # Bullets
+    # Bullets — 18pt system default
     if bullets:
-        bullet_fnt = font(24)
+        bullet_fnt = font(BODY_PT)
         for b in bullets:
-            blue_square(d, mx, y + 8, size=14)
-            y = draw_text_wrap(d, b, mx + 32, y, W - 2 * mx - 32, bullet_fnt,
-                               CHARCOAL_BODY, line_h=34)
-            y += 20
+            blue_square(d, mx, y + 6, size=10)
+            y = draw_text_wrap(d, b, mx + 22, y, W - 2 * mx - 22, bullet_fnt,
+                               CHARCOAL_BODY, line_h=int(BODY_PT * 1.5))
+            y += 14
 
-    # Body (paragraph)
+    # Body (paragraph) — 18pt
     if body:
-        body_fnt = font(24)
+        body_fnt = font(BODY_PT)
         for para in body:
             y = draw_text_wrap(d, para, mx, y, W - 2 * mx, body_fnt,
-                               CHARCOAL_BODY, line_h=34)
-            y += 16
+                               CHARCOAL_BODY, line_h=int(BODY_PT * 1.5))
+            y += 12
 
-    # Closing line (gold-ish charcoal italic-feel)
+    # Closing line — in blue, 20pt
     if closing:
-        close_fnt = font(26)
-        y += 20
+        close_fnt = font(20)
+        y += 18
         draw_text_wrap(d, closing, mx, y, W - 2 * mx, close_fnt, BLUE,
-                       line_h=34)
+                       line_h=int(20 * 1.4))
 
     # Footer
-    foot_fnt = font(16)
-    d.text((mx, H - 50), "DATAFUND  ·  2026", fill=MUTED_GREY, font=foot_fnt)
+    foot_fnt = font(FOOTER_PT)
+    d.text((mx, H - 40), "DATAFUND  ·  2026", fill=MUTED_GREY, font=foot_fnt)
     if slide_num:
         sn = f"{slide_num} / 30"
         bbox = d.textbbox((0, 0), sn, font=foot_fnt)
-        d.text((W - mx - (bbox[2] - bbox[0]), H - 50), sn, fill=MUTED_GREY,
+        d.text((W - mx - (bbox[2] - bbox[0]), H - 40), sn, fill=MUTED_GREY,
                font=foot_fnt)
 
     return img
@@ -190,18 +210,18 @@ def render_dramatic_pause(num=29):
     """One more thing — minimalist slide."""
     img = make_background()
     d = ImageDraw.Draw(img)
-    fnt = font(96)
+    fnt = font(PAUSE_TITLE_PT)
     text = "One more thing."
     bbox = d.textbbox((0, 0), text, font=fnt)
     tw = bbox[2] - bbox[0]
     th = bbox[3] - bbox[1]
     d.text(((W - tw) // 2, (H - th) // 2 - 40), text,
            fill=CHARCOAL_DARK, font=fnt)
-    foot_fnt = font(16)
-    d.text((110, H - 50), "DATAFUND  ·  2026", fill=MUTED_GREY, font=foot_fnt)
+    foot_fnt = font(FOOTER_PT)
+    d.text((110, H - 40), "DATAFUND  ·  2026", fill=MUTED_GREY, font=foot_fnt)
     sn = f"{num} / 30"
     bbox = d.textbbox((0, 0), sn, font=foot_fnt)
-    d.text((W - 110 - (bbox[2] - bbox[0]), H - 50), sn, fill=MUTED_GREY,
+    d.text((W - 110 - (bbox[2] - bbox[0]), H - 40), sn, fill=MUTED_GREY,
            font=foot_fnt)
     return img
 
@@ -384,12 +404,12 @@ def build_deck():
                 # Cover: minimalist
                 img = make_background()
                 d = ImageDraw.Draw(img)
-                title_fnt = font(96)
+                title_fnt = font(COVER_TITLE_PT)
                 bbox = d.textbbox((0, 0), spec["title"], font=title_fnt)
                 tw = bbox[2] - bbox[0]
-                d.text(((W - tw) // 2, H // 2 - 90), spec["title"],
+                d.text(((W - tw) // 2, H // 2 - 70), spec["title"],
                        fill=CHARCOAL_DARK, font=title_fnt)
-                sub_fnt = font(28)
+                sub_fnt = font(SUBTITLE_PT)
                 if spec.get("subtitle"):
                     bbox = d.textbbox((0, 0), spec["subtitle"], font=sub_fnt)
                     sw = bbox[2] - bbox[0]
