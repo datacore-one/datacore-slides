@@ -533,7 +533,7 @@ def create_pdf(image_paths: list[str], output_path: str, page_width: float = Non
 
 
 def add_logo_to_image(image_path: str, logo_path: str, logo_height: int = 160,
-                       margin_pct: float = 0.03, whitewash_corner: bool = True):
+                       margin_pct: float = 0.03, whitewash_corner: bool = False):
     """Overlay logo on an image in the bottom-right corner with transparency.
 
     Args:
