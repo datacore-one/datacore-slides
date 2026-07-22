@@ -390,6 +390,34 @@ CRITICAL REQUIREMENTS:
 
         contents.append(prompt)
 
+        # Request native high-res output (Nano Banana Pro supports 1K/2K/4K).
+        # The legacy google.generativeai SDK does not know image_config, so this
+        # path goes over REST directly. Without it the model returns ~1K images
+        # that get LANCZOS-upscaled, which softens text at print sizes.
+        # Text-only contents only (reference images are not supported here).
+        if os.environ.get("NANO_BANANA_IMAGE_SIZE") and all(isinstance(c, str) for c in contents):
+            import urllib.request as _rq
+            payload = {
+                "contents": [{"parts": [{"text": "\n".join(contents)}]}],
+                "generationConfig": {
+                    "responseModalities": ["IMAGE"],
+                    "imageConfig": {"imageSize": os.environ["NANO_BANANA_IMAGE_SIZE"]},
+                },
+            }
+            url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
+                   f"{model.model_name.split('/')[-1]}:generateContent"
+                   f"?key={os.environ['GEMINI_API_KEY']}")
+            req = _rq.Request(url, data=json.dumps(payload).encode(),
+                              headers={"Content-Type": "application/json"})
+            with _rq.urlopen(req, timeout=600) as resp:
+                body = json.load(resp)
+            for cand in body.get("candidates", []):
+                for part in cand.get("content", {}).get("parts", []):
+                    if "inlineData" in part:
+                        return base64.b64decode(part["inlineData"]["data"])
+            print(f"  Warning: No image in REST response for slide {slide['number']}")
+            return None
+
         response = model.generate_content(
             contents=contents,
             generation_config={
@@ -403,6 +431,17 @@ CRITICAL REQUIREMENTS:
                 return part.inline_data.data
 
         print(f"  Warning: No image in response for slide {slide['number']}")
+        for part in response.parts:
+            if hasattr(part, 'text') and part.text:
+                print(f"  Model text response: {part.text[:500]}")
+        try:
+            fb = getattr(response, 'prompt_feedback', None)
+            if fb:
+                print(f"  Prompt feedback: {fb}")
+            for cand in getattr(response, 'candidates', []) or []:
+                print(f"  Finish reason: {getattr(cand, 'finish_reason', '?')}")
+        except Exception as diag_err:
+            print(f"  (diagnostics unavailable: {diag_err})")
         return None
 
     except Exception as e:
@@ -653,7 +692,7 @@ def main():
     parser.add_argument('--test', '-t', type=int, default=0,
                         help='Only generate first N slides for testing')
     parser.add_argument('--model', '-m', default='gemini-3-pro-image-preview',
-                        choices=['gemini-2.5-flash-image', 'gemini-2.5-flash-image-preview', 'gemini-3-pro-image-preview', 'gemini-3.1-flash-image-preview'],
+                        choices=['gemini-2.5-flash-image', 'gemini-2.5-flash-image-preview', 'gemini-3-pro-image-preview', 'gemini-3-pro-image', 'gemini-3.1-flash-image-preview'],
                         help='Gemini model to use (default: gemini-3-pro-image-preview = Nano Banana Pro; '
                              'Pro respects typography directives much better than Flash variants and is the '
                              'right default for enterprise/banking decks. Use Flash for cheap iterations.)')
