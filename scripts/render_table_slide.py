@@ -6,16 +6,16 @@ WHY THIS EXISTS
 ---------------
 nano-banana-slides.py sends slide copy to an image-generation model. For layout
 and diagram slides that works well. For DENSE FACTUAL TABLES it does not: on the
-2026-08-12 SRC deck, a ten-row defect table came back with a duplicated row on
-one render and SIX FABRICATED ROWS on the next — invented defects, an invented
-category heading, and a truncated cell, silently, with no error.
+2026-08-12 SRC deck a ten-row defect table came back with a duplicated row on one
+render and SIX FABRICATED ROWS on the next — invented entries, an invented
+category heading and a truncated cell, silently, with no error.
 
 A generative renderer cannot be trusted to reproduce a factual table verbatim,
-and the failure is silent, so it must be proofread every time. Any slide whose
-content is data — real numbers, real log entries, anything a reader could check
-— should be typeset deterministically instead. That is what this does.
+and the failure is silent. Any slide whose content is data a reader could check
+should be typeset instead. That is what this does.
 
-Draws directly with PIL. No API, no network, no model. Same pixels every run.
+Shared canvas, palette and title treatment come from slide_chrome.py so this
+cannot drift from the other typeset slides.
 
 USAGE
 -----
@@ -24,15 +24,15 @@ USAGE
 SPEC (JSON)
 -----------
     {
-      "title": "Ten defects, one codebase, several weeks.",
-      "subtitle": "Our own log. Offered as evidence, not a claim about anyone else.",
-      "columns": ["WHAT BROKE", "HOW IT FAILED"],
+      "title": "...", "subtitle": "...", "caption": "...",
+      "columns": ["Field", "What it holds"],
       "rows": [
         {"group": "RETRIEVAL"},
-        {"cells": ["Feedback was stored and shown", "ranking never read it"]}
-      ],
-      "caption": "none of these crashed."
+        {"cells": ["statement", "what was learned"], "emphasis": true}
+      ]
     }
+
+`emphasis: true` renders a row as a summary line — accent type on a tinted band.
 """
 
 import argparse
@@ -40,97 +40,62 @@ import json
 import sys
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import ImageDraw
 
-W, H = 3840, 2160
-
-INK = (26, 29, 36)
-BODY = (42, 47, 58)
-MUTE = (118, 125, 141)
-ACCENT = (26, 86, 219)
-RULE = (226, 228, 234)
-BG = (255, 255, 255)
-
-MARGIN = 200
-FONT_PATH = "/System/Library/Fonts/HelveticaNeue.ttc"
-
-
-def font(size: int, index: int = 0) -> ImageFont.FreeTypeFont:
-    """Helvetica Neue. index 0 = regular (the deck forbids bold anywhere)."""
-    try:
-        return ImageFont.truetype(FONT_PATH, size, index=index)
-    except OSError:
-        return ImageFont.load_default(size)
-
-
-def tracked(draw, xy, text, fnt, fill, spacing=0):
-    """Draw text with manual letter-spacing (PIL has no tracking)."""
-    x, y = xy
-    for ch in text:
-        draw.text((x, y), ch, font=fnt, fill=fill)
-        x += draw.textlength(ch, font=fnt) + spacing
-    return x
-
-
-def orbs(img):
-    """Two soft pastel orbs, corner-anchored, cut off by the edge, barely there."""
-    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    d = ImageDraw.Draw(layer)
-    d.ellipse([-260, -300, 620, 560], fill=(196, 208, 244, 30))
-    d.ellipse([W - 560, H - 460, W + 320, H + 400], fill=(226, 206, 238, 26))
-    layer = layer.filter(__import__("PIL.ImageFilter", fromlist=["ImageFilter"]).GaussianBlur(120))
-    img.alpha_composite(layer)
+from slide_chrome import (W, H, INK, BODY, MUTE, ACCENT, ACCENT_SOFT, RULE,
+                          MARGIN, CONTENT_BOTTOM, canvas, title_block,
+                          caption as _cap, font, tracked, save)
 
 
 def render(spec: dict, out: Path) -> None:
-    img = Image.new("RGBA", (W, H), BG + (255,))
-    orbs(img)
-    draw = ImageDraw.Draw(img)
+    img = canvas(int(spec.get("variant", 0)))
+    d = ImageDraw.Draw(img)
 
-    f_title = font(104)
-    f_sub = font(50)
-    f_head = font(36)
-    f_cell = font(52)
-    f_group = font(36)
-    f_cap = font(40)
+    top = title_block(d, spec["title"], spec.get("subtitle", ""))
 
-    y = 150
-    draw.text((MARGIN, y), spec["title"], font=f_title, fill=INK)
-    y += 150
+    f_head, f_cell, f_group = font(40), font(52), font(34)
 
-    if spec.get("subtitle"):
-        draw.text((MARGIN, y), spec["subtitle"], font=f_sub, fill=MUTE)
-        y += 130
+    cols = [c for c in (spec.get("columns") or [])]
+    n_cols = max(2, len(cols))
+    col_x = [MARGIN, int(W * 0.50)] if n_cols == 2 else [MARGIN, int(W * 0.40), int(W * 0.70)]
 
-    col_x = [MARGIN, int(W * 0.53)]
-
-    cols = spec.get("columns") or []
-    if cols:
-        for i, head in enumerate(cols):
-            tracked(draw, (col_x[i], y), head.upper(), f_head, MUTE, spacing=4)
-        y += 70
-        draw.line([(MARGIN, y), (W - MARGIN, y)], fill=RULE, width=3)
-        y += 18
+    y = top
+    if any(cols):
+        for i, head in enumerate(cols[:len(col_x)]):
+            if head:
+                tracked(d, (col_x[i], y), head.upper(), f_head, ACCENT, spacing=7)
+        y += 78
+        d.line([(MARGIN, y), (W - MARGIN, y)], fill=ACCENT, width=3)
+        y += 20
 
     rows = spec["rows"]
-    # Fit every row on the canvas, leaving room for the caption.
-    avail = H - y - (190 if spec.get("caption") else 110)
-    row_h = min(128, avail // max(len(rows), 1))
+    avail = (CONTENT_BOTTOM - y)
+    row_h = min(158, avail // max(len(rows), 1))
+    # a short table would otherwise cling to the top and leave the lower half
+    # empty — centre the block in whatever space is left
+    slack = avail - row_h * len(rows)
+    if slack > 0:
+        y += min(slack // 3, 120)
 
     for row in rows:
         if "group" in row:
-            tracked(draw, (MARGIN, y + row_h // 2 - 26), row["group"].upper(),
-                    f_group, ACCENT, spacing=5)
+            tracked(d, (MARGIN, y + row_h // 2 - 26), row["group"].upper(),
+                    f_group, ACCENT, spacing=6)
         else:
-            for i, cell in enumerate(row["cells"][:2]):
-                draw.text((col_x[i], y + row_h // 2 - 34), cell, font=f_cell, fill=BODY)
+            if row.get("emphasis"):
+                d.rounded_rectangle([MARGIN - 34, y + 8, W - MARGIN + 34, y + row_h - 8],
+                                    radius=14, fill=ACCENT_SOFT)
+            colour = ACCENT if row.get("emphasis") else BODY
+            first = ACCENT if row.get("emphasis") else INK
+            for i, cell in enumerate(row["cells"][:len(col_x)]):
+                d.text((col_x[i], y + row_h // 2 - 34), cell, font=f_cell,
+                       fill=first if i == 0 else colour)
         y += row_h
-        draw.line([(MARGIN, y), (W - MARGIN, y)], fill=RULE, width=2)
+        if not row.get("emphasis"):
+            d.line([(MARGIN, y), (W - MARGIN, y)], fill=RULE, width=2)
 
-    if spec.get("caption"):
-        draw.text((MARGIN, y + 46), spec["caption"], font=f_cap, fill=MUTE)
-
-    img.convert("RGB").save(out, "PNG")
+    _cap(d, spec.get("caption"))
+    save(img, out)
     print(f"rendered {out}  ({len([r for r in rows if 'cells' in r])} data rows, "
           f"{len([r for r in rows if 'group' in r])} group headings)")
 
@@ -138,12 +103,10 @@ def render(spec: dict, out: Path) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("spec", help="JSON spec file")
-    ap.add_argument("-o", "--output", required=True, help="output PNG path")
+    ap.add_argument("spec")
+    ap.add_argument("-o", "--output", required=True)
     args = ap.parse_args()
-
-    spec = json.loads(Path(args.spec).read_text())
-    render(spec, Path(args.output))
+    render(json.loads(Path(args.spec).read_text()), Path(args.output))
     return 0
 
 
