@@ -15,6 +15,9 @@ Example:
 """
 
 import os
+
+# DIP-0047: image generation costs money on a third-party service.
+from datacore.ledger import attests
 import sys
 import json
 import re
@@ -243,6 +246,9 @@ def get_slide_type_instructions(slide_type: str) -> str:
 - Key callouts or highlights styled consistently
 - Clean visual hierarchy"""
 
+
+
+@attests("spend.image", ref=lambda r: str(getattr(r, "id", None) or (r.get("id", "") if isinstance(r, dict) else "") or ""))
 
 def generate_slide_image(slide: dict, model, total_slides: int = 7, reference_images: list = None, logo_image = None, portrait: bool = False, design_system_override: str = None) -> bytes:
     """Generate a slide image using Gemini API.

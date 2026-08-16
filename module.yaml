@@ -99,3 +99,8 @@ recall:
     - module:slides
   tags:
     - slides
+
+# DIP-0047
+egress:
+  - fn: scripts/nano-banana-slides.py:generate_slide_image
+    kind: spend.image
