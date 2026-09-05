@@ -1,43 +1,43 @@
 #!/usr/bin/env python3
 """life_field.py — a Conway's Game of Life ground for PLUR decks, as inline SVG.
 
-WHY THIS EXISTS, AND WHY IT IS NOT GENERATED
---------------------------------------------
-`render_cover_slide.py` already argued the point for a single cover and it holds for a
-whole deck: the product is memory, so the ground should be a trace of what came before
-rather than a picture of nothing. An image model will happily draw a plausible grid that
-is not actually Life — on a deck about records you can verify, that is a poor joke. This
-computes it. Same seed, same rules (B3/S23), same pixels every run.
+WHY LIFE, AND WHY COMPUTED
+--------------------------
+The product is memory, so the ground should be a trace of what came before rather than a
+picture of nothing: each slide layers past generations behind the current one, oldest
+faintest. And an image model draws a plausible grid that is not actually Life — on a deck
+about records you can verify, that would be a poor joke. `render_cover_slide.py` made the
+argument first and it holds for a whole deck. Same seed, same B3/S23 rules, same pixels.
 
-WHAT MAKES IT THE PLUR GROUND RATHER THAN GENERIC LIFE
-------------------------------------------------------
-The mark is nine dots on a grid, four of which fire. This field is the same sentence at
-page scale: the CSS ghost lattice is the resting grid, and a live cell is a fired node
-sitting exactly on one of its dots. Pitch and offset are shared with the CSS
-(`background-size:34px 34px; background-position:17px 17px`) so the two layers register
-rather than merely coexist. Nothing here is outside the brand's dot-and-bar vocabulary.
+SCALE IS THE WHOLE DESIGN DECISION
+----------------------------------
+The first version ran 57x32 cells of 9px dots. It was, correctly, called noise — and it
+was noise by definition: uniform high-frequency detail with no low-frequency structure,
+scattered evenly, in one colour at an opacity too low to read as colour at all.
+
+This runs 13x8. A live cell is a 52px disc in the slide's accent, and adjacent live cells
+are joined by a bar carrying the gradient between their colours. A slide's ground is eight
+or fifteen large connected forms, not four hundred specks — and it is the mark's own
+construction (nodes joined by round-capped bars) at the size of the page, which is exactly
+what the mark already is at the size of a logo.
+
+Fewer, larger, connected, and in colour. That is the difference between a ground and dust.
 
 ONE ORGANISM, NOT SIXTEEN PICTURES
 -----------------------------------
-A deck calls `DeckField` once and advances it between slides. Every slide shows a later
-moment of the same simulation, so the backgrounds are unique per slide and obviously one
-family — which is the thing a folder of independently generated plates can never be.
-
-Where the argument earns it, a slide INJECTS a pattern into the running field instead of
-restarting it: an r-pentomino where the copy says memory fires ungoverned, a glider where
-it says a pattern persists and travels, blocks where it says what survives. The organism
-keeps living; the argument perturbs it.
+A deck seeds the field once and advances it between slides, so every ground is unique and
+obviously the same creature. `inject()` perturbs it where the copy earns it; `govern()`
+retires overcrowded cells, which prunes churn and leaves what persists.
 
 USAGE
 -----
     from life_field import DeckField
-    deck = DeckField(seed="plur", settle=40)
-    svg = deck.slide_svg(trail=3, opacity=0.06)      # first slide
-    deck.advance(6)                                   # between slides
-    deck.inject("r-pentomino")                        # where the copy earns it
+    deck = DeckField(seed="plur")
+    svg = deck.slide_svg(accent="cyan", accent_next="amber", opacity=0.16)
+    deck.advance(1)
 
-CLI (preview a field as a standalone SVG):
-    python3 life_field.py --seed plur --settle 40 --advance 12 --out field.svg
+CLI:
+    python3 life_field.py --advance 3 --out field.svg
 """
 from __future__ import annotations
 
@@ -46,26 +46,22 @@ import random
 import sys
 from pathlib import Path
 
-# Geometry shared with the deck CSS ghost lattice — do not change one without the other.
-PITCH = 34
-OFFSET = 17
-COLS = 57
-ROWS = 32
-LIVE_R = 9.0          # a fired node: the mark fires at 3x its resting radius, and so does this
 CANVAS = (1920, 1080)
+COLS, ROWS = 13, 8
+PITCH = 150
+NODE_R = 52          # a fired node at page scale
+TRAIL_R = 30         # an afterimage is smaller as well as fainter
+BAR_W = 15           # the mark's bar is 11 at viewBox 200; this is that weight here
 
-# Named seeds. Coordinates are cell offsets from the pattern's own origin.
+# Centre the lattice on the canvas.
+OX = (CANVAS[0] - (COLS - 1) * PITCH) // 2
+OY = (CANVAS[1] - (ROWS - 1) * PITCH) // 2
+
 PATTERNS: dict[str, list[tuple[int, int]]] = {
-    # The mark's home path [0,4,5,8] on its 3x3 — the brand's own tetromino, sown as a seed.
-    "home-path": [(0, 0), (1, 1), (2, 1), (2, 2)],
-    # The classic chaos seed: five cells that will not settle for a thousand generations.
+    "home-path": [(0, 0), (1, 1), (2, 1), (2, 2)],   # the mark's own four fired nodes
     "r-pentomino": [(1, 0), (2, 0), (0, 1), (1, 1), (1, 2)],
-    # A pattern that persists AND travels — memory that moves.
     "glider": [(1, 0), (2, 1), (0, 2), (1, 2), (2, 2)],
-    # Still lifes: what survives when everything else stops.
     "block": [(0, 0), (1, 0), (0, 1), (1, 1)],
-    "beehive": [(1, 0), (2, 0), (0, 1), (3, 1), (1, 2), (2, 2)],
-    # An oscillator — the thing that recurs.
     "blinker": [(0, 0), (1, 0), (2, 0)],
 }
 
@@ -83,50 +79,25 @@ def step(live: set[tuple[int, int]]) -> set[tuple[int, int]]:
 
 
 class DeckField:
-    """One Life simulation, walked through a deck.
+    """One Life simulation, walked through a deck at page scale."""
 
-    COMPOSED, NOT RANDOM. A dense random seed settles into scattered debris, which reads
-    as noise at background opacity — tried it, it looks like dust. Instead the field is
-    seeded with a curated cast, each member of which means something the deck is already
-    arguing:
+    HISTORY = 12
 
-        still lifes (block, beehive)  what persists unchanged
-        blinkers                      what recurs
-        gliders                       a pattern that persists AND travels
-        r-pentomino                   growth nobody governs
-
-    The trail is sampled at a STRIDE rather than at consecutive generations. A glider
-    moves one cell every four generations, so three consecutive frames are visually
-    identical; sampling every fifth generation gives it a wake you can actually see, and
-    the wake is the point — the ground shows where something came from.
-
-    A soft left mask keeps the field out of the text column without breaking the
-    simulation: the cells are still alive and still evolving, they are simply drawn
-    faint where type sits.
-    """
-
-    HISTORY = 48
-
-    def __init__(self, seed: str = "plur", settle: int = 24):
-        rng = random.Random(seed)
-        self.rng = rng
+    def __init__(self, seed: str = "plur", settle: int = 3):
+        self.rng = random.Random(seed)
         live: set[tuple[int, int]] = set()
 
         def place(name: str, x: int, y: int) -> None:
             for (dx, dy) in PATTERNS[name]:
                 live.add(((x + dx) % COLS, (y + dy) % ROWS))
 
-        # The cast, placed in the right two thirds where type is not.
-        for name, x, y in (("block", 46, 3), ("beehive", 51, 22), ("block", 33, 28),
-                           ("blinker", 41, 9), ("blinker", 54, 14)):
-            place(name, x, y)
-        # Gliders travel down-right one cell per four generations; start them upper-left
-        # of their region so they sweep across the frame over the length of the deck.
-        for x, y in ((30, 2), (37, 16), (25, 24)):
-            place("glider", x, y)
-        # The mark's own tetromino, sown twice — the brand's shape, left to evolve.
-        for x, y in ((44, 12), (29, 9)):
-            place("home-path", x, y)
+        # A small world needs a deliberate cast; a random scatter here either dies in two
+        # generations or fills the frame, and neither is a composition.
+        place("home-path", 8, 1)      # the mark, sown, and left to evolve
+        place("block", 11, 5)         # what persists unchanged
+        place("blinker", 6, 6)        # what recurs
+        place("glider", 2, 2)         # what persists AND travels
+        place("home-path", 4, 4)
 
         self.live = live
         self.history: list[set[tuple[int, int]]] = []
@@ -149,17 +120,11 @@ class DeckField:
     def govern(self, crowd: int = 4) -> int:
         """Retire the ungoverned parts of the field, and only those.
 
-        A cell with `crowd` or more live neighbours is in an overcrowded, churning
-        region — the debris an r-pentomino leaves behind. Stable structures are quieter
-        by construction: every cell of a block has exactly three neighbours, a blinker's
-        have one or two. So removing the crowded cells prunes the chaos and leaves what
-        persists, which is the same sentence the deck is arguing on the slide where this
-        is called. Returns how many cells were retired.
-
-        Without this the deck gets BUSIER as it goes: the injections at the problem and
-        fleet slides grow for the rest of the run and the closer — the slide that should
-        be calmest — ends up the loudest. An argument that says governance is the answer
-        should not have an ungoverned ground.
+        A cell with `crowd` or more live neighbours sits in a churning region — the debris
+        an r-pentomino leaves. Stable structures are quieter by construction: every cell of
+        a block has exactly three neighbours. So this prunes chaos and leaves what persists,
+        which is the sentence the deck is arguing on the slide where it is called. Without
+        it the deck grows busier as it runs and the closer becomes its loudest page.
         """
         counts: dict[tuple[int, int], int] = {}
         for (x, y) in self.live:
@@ -175,54 +140,69 @@ class DeckField:
     # ── rendering ────────────────────────────────────────────────────────
     @staticmethod
     def _mask(x: int) -> float:
-        """Keep the text column clear.
-
-        Near-silent across the left half, where every slide's headline and body sit,
-        rising to full only in the right third. The cells are still alive and still
-        evolving there — they are simply drawn faint, so the simulation stays whole.
-        """
+        """Keep the type column quiet. Near-silent left, full by two thirds across."""
         t = x / (COLS - 1)
         if t >= 0.66:
             return 1.0
-        return 0.05 + 0.95 * max(0.0, (t - 0.16) / 0.50) ** 2.0
+        return 0.10 + 0.90 * max(0.0, (t - 0.15) / 0.51) ** 1.8
 
-    def slide_svg(self, trail: int = 3, stride: int = 5, opacity: float = 0.22,
-                  accent: str | None = None) -> str:
+    def _px(self, x: int, y: int) -> tuple[int, int]:
+        return OX + x * PITCH, OY + y * PITCH
+
+    def _bars(self, cells: set[tuple[int, int]], a: str, b: str, op: float, uid: str) -> str:
+        """Join adjacent live cells, gradient between their accents.
+
+        This is the one gradient the brand owns — inside a bar, between the two nodes it
+        connects — and it is what turns a set of discs into the mark's own construction.
+        Wrapped pairs are skipped: a bar that leaves one edge and reappears at the other
+        reads as a mistake rather than as a torus.
+        """
+        out, defs, n = [], [], 0
+        for (x, y) in sorted(cells):
+            for (dx, dy) in ((1, 0), (0, 1)):
+                nx, ny = x + dx, y + dy
+                if nx >= COLS or ny >= ROWS or (nx, ny) not in cells:
+                    continue
+                x1, y1 = self._px(x, y)
+                x2, y2 = self._px(nx, ny)
+                gid = f"{uid}b{n}"
+                n += 1
+                defs.append(f'<linearGradient id="{gid}" gradientUnits="userSpaceOnUse" '
+                            f'x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}">'
+                            f'<stop offset="0" stop-color="var(--{a})"/>'
+                            f'<stop offset="1" stop-color="var(--{b})"/></linearGradient>')
+                m = min(self._mask(x), self._mask(nx))
+                out.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="url(#{gid})" '
+                           f'stroke-width="{BAR_W}" stroke-linecap="round" '
+                           f'stroke-opacity="{op * m:.4f}"/>')
+        return f'<defs>{"".join(defs)}</defs>{"".join(out)}'
+
+    def slide_svg(self, accent: str = "cyan", accent_next: str = "amber",
+                  opacity: float = 0.16, trail: int = 2, uid: str = "f") -> str:
         """Inline SVG for one slide's ground.
 
-        `accent` names a CSS var for the newest generation only, so a slide keeps its
-        single accent and the trail reads as decay rather than as a second colour.
-
-        Cell radius is NOT set here. It is one CSS rule in the consuming stylesheet
-        (`.life circle{r:9px}`) — scoped by class, because an unscoped `circle{r:...}`
-        inside an inline SVG leaks to the whole HTML document and would resize the
-        mark's own nodes.
+        One accent per slide, as the brand requires; the bars carry the licensed gradient
+        toward the next accent in the positional sequence, so the deck traverses the whole
+        palette across its length without any single page wearing four colours.
         """
-        layers: list[tuple[set[tuple[int, int]], float, bool]] = []
-        for i in range(trail, 0, -1):
-            idx = -i * stride
-            if len(self.history) >= i * stride:
-                fade = 0.16 + 0.30 * ((trail - i) / trail)
-                layers.append((self.history[idx], opacity * fade, False))
-        layers.append((self.live, opacity, True))
+        parts = [f'<svg class="life" viewBox="0 0 {CANVAS[0]} {CANVAS[1]}" '
+                 f'preserveAspectRatio="xMidYMid slice" aria-hidden="true">']
 
-        out = [f'<svg class="life" viewBox="0 0 {CANVAS[0]} {CANVAS[1]}" '
-               f'preserveAspectRatio="xMidYMid slice" aria-hidden="true">']
-        for cells, op, newest in layers:
-            fill = f"var(--{accent})" if (newest and accent) else "currentColor"
-            # Group by mask band so opacity varies across the frame without one <g> per cell.
-            bands: dict[int, list[tuple[int, int]]] = {}
-            for (x, y) in cells:
-                bands.setdefault(int(self._mask(x) * 8), []).append((x, y))
-            body = []
-            for band, pts in sorted(bands.items()):
-                m = (band + 0.5) / 8
-                dots = "".join(f'<circle cx="{OFFSET + x * PITCH}" cy="{OFFSET + y * PITCH}"/>'
-                               for (x, y) in sorted(pts))
-                body.append(f'<g fill-opacity="{op * m:.4f}">{dots}</g>')
-            out.append(f'<g fill="{fill}">{"".join(body)}</g>')
-        out.append("</svg>")
-        return "".join(out)
+        # Afterimages first, behind: smaller and much fainter, the trace of what was here.
+        for i, gen in enumerate(self.history[-trail:] if trail else []):
+            f = 0.20 + 0.22 * (i / max(trail, 1))
+            dots = "".join(
+                f'<circle cx="{self._px(x, y)[0]}" cy="{self._px(x, y)[1]}" r="{TRAIL_R}" '
+                f'fill-opacity="{opacity * f * self._mask(x):.4f}"/>' for (x, y) in sorted(gen))
+            parts.append(f'<g fill="var(--{accent})">{dots}</g>')
+
+        parts.append(self._bars(self.live, accent, accent_next, opacity * 0.72, uid))
+        dots = "".join(
+            f'<circle cx="{self._px(x, y)[0]}" cy="{self._px(x, y)[1]}" r="{NODE_R}" '
+            f'fill-opacity="{opacity * self._mask(x):.4f}"/>' for (x, y) in sorted(self.live))
+        parts.append(f'<g fill="var(--{accent})">{dots}</g>')
+        parts.append("</svg>")
+        return "".join(parts)
 
     def population(self) -> int:
         return len(self.live)
@@ -231,11 +211,10 @@ class DeckField:
 def main() -> int:
     ap = argparse.ArgumentParser(description="Preview a PLUR Life ground as SVG")
     ap.add_argument("--seed", default="plur")
-    ap.add_argument("--settle", type=int, default=24)
+    ap.add_argument("--settle", type=int, default=3)
     ap.add_argument("--advance", type=int, default=0)
     ap.add_argument("--inject", action="append", default=[], choices=list(PATTERNS))
-    ap.add_argument("--trail", type=int, default=3)
-    ap.add_argument("--opacity", type=float, default=0.13)
+    ap.add_argument("--opacity", type=float, default=0.16)
     ap.add_argument("--out", default="life-field.svg")
     a = ap.parse_args()
 
@@ -244,13 +223,14 @@ def main() -> int:
         f.inject(p)
     if a.advance:
         f.advance(a.advance)
-    svg = f.slide_svg(trail=a.trail, opacity=a.opacity)
+    body = f.slide_svg(opacity=a.opacity)
     Path(a.out).write_text(
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{CANVAS[0]}" height="{CANVAS[1]}" '
-        f'viewBox="0 0 {CANVAS[0]} {CANVAS[1]}" style="background:#0e0f14;color:#f0f0f2">'
-        + svg[svg.index(">") + 1:])
+        f'viewBox="0 0 {CANVAS[0]} {CANVAS[1]}" style="background:#0e0f14">'
+        f'<style>:root{{--cyan:#22d3ee;--amber:#f0a050}}</style>'
+        + body[body.index(">") + 1:])
     print(f"{a.out}  generation {f.generation}  population {f.population()}  "
-          f"{len(svg) // 1024} KB inline")
+          f"{len(body) // 1024} KB inline")
     return 0
 
 
